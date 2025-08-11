@@ -1,5 +1,5 @@
 # multi_strategy_stock_agent.py
-import os, json, asyncio, akshare as ak, pandas as pd, ta
+import os, json, asyncio, akshare as ak, pandas as pd, talib as ta
 from datetime import datetime, timedelta
 from typing import List, Dict
 from langchain_core.tools  import BaseTool
@@ -51,6 +51,6 @@ class TechTool(BaseTool):
         close = pd.to_numeric(df[" 收盘"])
         ma5 = close.rolling(5).mean().iloc[-1]
         ma10 = close.rolling(10).mean().iloc[-1]
-        macd = ta.trend.macd(close).iloc[-1]
-        rsi = ta.momentum.rsi(close).iloc[-1]
+        macd = ta.MACD(close, fastperiod=12, slowperiod=26, signalperiod=9)
+        rsi = ta.RSI(close, timeperiod=14)
         return {"MA5": ma5, "MA10": ma10, "MACD": macd, "RSI": rsi}

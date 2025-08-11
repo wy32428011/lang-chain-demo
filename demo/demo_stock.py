@@ -65,12 +65,12 @@ def tech_tool(symbol: str) -> str:
 
 
 # === 3. 构建 LangChain 智能体 ===
-base_url = "https://api.siliconflow.cn/v1"
-api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
-model_name = "deepseek-ai/DeepSeek-R1"
-# base_url = "http://172.24.205.153:30000/v1"
-# api_key = "qwen"
-# model_name = "qwen"
+# base_url = "https://api.siliconflow.cn/v1"
+# api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
+# model_name = "deepseek-ai/DeepSeek-R1"
+base_url = "http://172.24.205.153:30000/v1"
+api_key = "qwen"
+model_name = "qwen"
 llm = ChatOpenAI(
     model=model_name,
     temperature=0.3,
@@ -97,7 +97,7 @@ prompt = ChatPromptTemplate.from_messages([
                f"6. 操作建议：根据以上分析，给出操作建议，包括买入、卖出、持有。\n"
                f"7. 风险提示：根据以上分析，给出风险提示，包括风险系数、风险等级等。\n"
                f"8. 分析总结：根据以上分析，给出总结，包括分析结果、操作建议、风险提示等。\n"
-               f"9. 总结报告：根据以上分析，给出汇总不少于800字的报告\n"
+               f"9. 总结报告：根据以上分析，给出汇总不少于800字的分析报告\n"
                "最终输出格式必须符合以下JSON结构：\n{schema}"
      ),
     ("user", "{input}"),
@@ -109,6 +109,6 @@ executor = AgentExecutor(agent=agent, tools=[get_stock_history, tech_tool, fetch
 
 # === 4. 运行示例 ===
 if __name__ == "__main__":
-    stock_code = "601003"  # 万科A
+    stock_code = "002735"  # 万科A
     result = executor.invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
     print(result["output"])

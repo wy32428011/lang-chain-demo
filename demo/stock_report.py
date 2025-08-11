@@ -14,4 +14,4 @@ class StockReport(BaseModel):
     news_sentiment: str = Field(..., description="股票新闻情绪分析")
     action_analysis: str = Field(..., description="股票操作建议分析")
     risk: str = Field(..., description="股票风险提示")
-    summary: str = Field(..., description="股票分析总结，包含以上所有内容，不少于800字，内容详细，细节丰富")
+    summary: str = Field(..., description="股票分析总结，包含以上所有内容，不少于800字的分析报告")
