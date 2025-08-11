@@ -45,7 +45,7 @@ def search_stock_news(symbol: str) -> str:
 
 # === 工具3：计算技术指标 ===
 @tool
-def tech_tool(symbol: str) -> str:
+def tech_tool(symbol: str) -> dict:
     """
     计算技术指标：计算MA5/MA10、MACD、RSI
     :param symbol: 股票编码
@@ -55,11 +55,10 @@ def tech_tool(symbol: str) -> str:
                             start_date=(datetime.now() - timedelta(days=60)).strftime("%Y%m%d"), adjust="")
     # print("[df数据]:::::::::", df)
     close = pd.to_numeric(df["收盘"])
-    ma5 = ta.SMA(close, timeperiod=5)
-    ma10 = ta.SMA(close, timeperiod=10)
+    ma5 = ta.MA(close, timeperiod=5)
+    ma10 = ta.MA(close, timeperiod=10)
     macd = ta.MACD(close)
     rsi = ta.RSI(close)
-    print("MA5:::::::::::::::::::", ma5)
     # print({"MA5": ma5, "MA10": ma10, "MACD": macd, "RSI": rsi})
     return {"MA5": ma5, "MA10": ma10, "MACD": macd, "RSI": rsi}
 
