@@ -67,7 +67,7 @@ def tech_tool(symbol: str) -> dict:
 # base_url = "https://api.siliconflow.cn/v1"
 # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
 # model_name = "deepseek-ai/DeepSeek-R1"
-base_url = "http://172.24.205.153:30000/v1"
+base_url = "http://192.168.60.146:9090/v1"
 api_key = "qwen"
 model_name = "qwen"
 llm = ChatOpenAI(
@@ -81,13 +81,13 @@ llm = ChatOpenAI(
 # 解析输出
 parser = PydanticOutputParser(pydantic_object=StockReport)
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", f"你是资深股票分析师。请根据历史行情、技术指标（计算MA5/MA10、MACD、RSI）、新闻，给出不少于800字详尽的行情分析，"
+prompt = (ChatPromptTemplate.from_messages([
+    ("system", f"你是资深股票分析师。请根据历史行情、技术指标（计算MA5/MA10、MACD、RSI）、新闻，给出不少于2000字详尽的行情分析，"
                f"请根据股票代码和新闻标题，分析股票的走势和新闻的情感倾向。并且通过自我反驳论证（至少三次或以上的自我反驳论证），做出最终判断: \n"
                f"-- 历史行情数据 调用工具get_stock_history 来分析历史数据趋势\n"
                f"-- 技术指标分析 调用工具tech_tool 计算MA5/MA10、MACD、RSI 来分析股票趋势\n"
                f"-- 新闻情绪 调用工具fetch_stock_news_selenium 来分析新闻情感\n"
-               f"综合所有数据，进行详细分析，输出结果如下：\n"
+               f"综合以上所有数据，进行详细分析，输出结果如下：\n"
                f"1. 股票价格趋势分析：根据历史行情数据，判断股票价格的趋势是上升、下降还是平稳。\n"
                f"2. 技术指标分析：根据计算得到的MA5、MA10、MACD、RSI指标，判断股票的趋势是向上、向下还是震荡。\n"
                f"3. 新闻情绪分析：根据新闻标题的情感倾向，判断新闻对股票的影响是正面、负面还是中性。\n"
@@ -96,12 +96,14 @@ prompt = ChatPromptTemplate.from_messages([
                f"6. 操作建议：根据以上分析，给出操作建议，包括买入、卖出、持有。\n"
                f"7. 风险提示：根据以上分析，给出风险提示，包括风险系数、风险等级等。\n"
                f"8. 分析总结：根据以上分析，给出总结，包括分析结果、操作建议、风险提示等。\n"
-               f"9. 总结报告：根据以上分析，给出汇总不少于800字的分析报告\n"
+               f"9. 总结报告：根据以上分析，给出汇总不少于2000字的分析报告\n"
                "最终输出格式必须符合以下JSON结构：\n{schema}"
      ),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad"),
-]).partial(schema=StockReport.model_json_schema())
+])
+.partial(schema=StockReport.model_json_schema())
+          )
 
 agent = create_openai_tools_agent(llm, [get_stock_history, tech_tool, fetch_stock_news_selenium], prompt)
 executor = AgentExecutor(agent=agent, tools=[get_stock_history, tech_tool, fetch_stock_news_selenium], verbose=True)
