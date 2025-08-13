@@ -18,4 +18,4 @@ class StockReport(BaseModel):
     news_sentiment: str = Field(..., description="股票新闻情绪分析,不少于1000字，以md的格式呈现")
     action_analysis: str = Field(..., description="股票操作建议分析,不少于1000字，以md的格式呈现")
     risk: str = Field(..., description="股票风险提示,不少于1000字，以md的格式呈现")
-    summary_report: str = Field(..., description="股票分析总结报告，包含股票技术指标分析、股票新闻情绪分析、股票操作建议分析、股票风险提示，不少于2000字的分析报告，以md的格式呈现")
+    # summary_report: str = Field(..., description="股票分析总结报告，包含股票技术指标分析、股票新闻情绪分析、股票操作建议分析、股票风险提示，不少于2000字的分析报告，以md的格式呈现")
