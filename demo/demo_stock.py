@@ -45,29 +45,44 @@ def search_stock_news(symbol: str) -> str:
 
 # === 工具3：计算技术指标 ===
 @tool
-def tech_tool(symbol: str) -> dict:
+def tech_tool(symbol: str) -> str:
     """
     计算技术指标：计算MA5/MA10、MACD、RSI
     :param symbol: 股票编码
-    :return: 技术指标数据
+    :return: 技术指标数据字符串
     """
     df = ak.stock_zh_a_hist(symbol=symbol, period="daily",
-                            start_date=(datetime.now() - timedelta(days=60)).strftime("%Y%m%d"), adjust="")
-    # print("[df数据]:::::::::", df)
+                            start_date=(datetime.now() - timedelta(days=30)).strftime("%Y%m%d"), adjust="")
     close = pd.to_numeric(df["收盘"])
+
+    # 计算技术指标
     ma5 = ta.MA(close, timeperiod=5)
     ma10 = ta.MA(close, timeperiod=10)
-    macd = ta.MACD(close)
-    rsi = ta.RSI(close)
-    # print({"MA5": ma5, "MA10": ma10, "MACD": macd, "RSI": rsi})
-    return {"MA5": ma5, "MA10": ma10, "MACD": macd, "RSI": rsi}
+    macd, macd_signal, macd_hist = ta.MACD(close)
+    rsi = ta.RSI(close, timeperiod=14)
+
+    # 获取最新值
+    latest_ma5 = ma5.iloc[-1] if len(ma5) > 0 else None
+    latest_ma10 = ma10.iloc[-1] if len(ma10) > 0 else None
+    latest_macd = macd.iloc[-1] if len(macd) > 0 else None
+    latest_macd_signal = macd_signal.iloc[-1] if len(macd_signal) > 0 else None
+    latest_rsi = rsi.iloc[-1] if len(rsi) > 0 else None
+
+    result = f"技术指标分析结果：\n"
+    result += f"MA5: {latest_ma5:.2f}\n"
+    result += f"MA10: {latest_ma10:.2f}\n"
+    result += f"MACD: {latest_macd:.4f}\n"
+    result += f"MACD信号线: {latest_macd_signal:.4f}\n"
+    result += f"RSI: {latest_rsi:.2f}\n"
+
+    return result
 
 
 # === 3. 构建 LangChain 智能体 ===
 # base_url = "https://api.siliconflow.cn/v1"
 # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
 # model_name = "deepseek-ai/DeepSeek-R1"
-base_url = "http://192.168.60.146:9090/v1"
+base_url = "http://25t6y78134.oicp.vip/v1"
 api_key = "qwen"
 model_name = "qwen"
 llm = ChatOpenAI(
@@ -97,13 +112,13 @@ prompt = (ChatPromptTemplate.from_messages([
                f"7. 风险提示：根据以上分析，给出风险提示，包括风险系数、风险等级等。\n"
                f"8. 分析总结：根据以上分析，给出总结，包括分析结果、操作建议、风险提示等。\n"
                f"9. 总结报告：根据以上分析，给出汇总不少于2000字的分析报告\n"
-               "最终输出格式必须符合以下JSON结构：\n{schema}"
+     # "最终输出格式必须符合以下JSON结构：\n{schema}"
      ),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad"),
 ])
-.partial(schema=StockReport.model_json_schema())
-          )
+    # .partial(schema=StockReport.model_json_schema())
+)
 
 agent = create_openai_tools_agent(llm, [get_stock_history, tech_tool, fetch_stock_news_selenium], prompt)
 executor = AgentExecutor(agent=agent, tools=[get_stock_history, tech_tool, fetch_stock_news_selenium], verbose=True)
@@ -113,3 +128,18 @@ if __name__ == "__main__":
     stock_code = "002735"  # 万科A
     result = executor.invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
     print(result["output"])
+
+    # 将分析结果保存到文件
+    from datetime import datetime
+
+    current_date = datetime.now().strftime("%Y%m%d")
+    filename = f"{stock_code}_{current_date}.txt"
+
+    # 确保output目录存在
+    output_dir = os.path.join(os.path.dirname(__file__), "output")
+    os.makedirs(output_dir, exist_ok=True)
+
+    file_path = os.path.join(output_dir, filename)
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(result["output"])
+    print(f"分析结果已保存到: {file_path}")
