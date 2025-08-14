@@ -24,10 +24,12 @@ function App() {
     const [tabData3, setTabData3] = useState('暂无信息');
     const [tabData4, setTabData4] = useState('暂无信息');
     const [tabData5, setTabData5] = useState('暂无信息');
+    const [tabData6, setTabData6] = useState('暂无信息');
+    const [tabData7, setTabData7] = useState('暂无信息');
     const [action, setAction] = useState('');
     const [name, setName] = useState('');
     const [currentPrice, setCurrentPrice] = useState(0.0);
-    const [targetPrice, setTargetPrice] = useState(0.0);
+    const [targetPrice, setTargetPrice] = useState('暂无信息');
     const [loading, setLoading] = useState(false);
     const getData = async () => {
         setLoading(true);
@@ -42,15 +44,17 @@ function App() {
             });
             const data = await res.data;
             console.log(data);
-            setTabData1(data.base_analysis);
-            setTabData2(data.tech_analysis);
-            setTabData3(data.news_sentiment);
-            setTabData4(data.action_analysis);
-            setTabData5(data.risk);
+            setTabData1(data.price_trend_analysis);
+            setTabData2(data.technical_indicators);
+            setTabData3(data.news_sentiment_analysis);
+            setTabData4(data.weekly_forecast);
+            setTabData5(data.risk_assessment);
+            setTabData6(data.operation_recommendation);
+            setTabData7(data.comprehensive_conclusion);
             setName(data.name);
-            setAction(data.action);
+            setAction(data.risk_level);
             setCurrentPrice(data.current_price);
-            setTargetPrice(data.target_price);
+            setTargetPrice(JSON.stringify(data.target_prices));
         } catch (e) {
             console.log(e);
         } finally {
@@ -115,10 +119,10 @@ function App() {
                         <Typography variant="body2" sx={{minWidth: 120}}>股票名称：{name || '--'}</Typography>
                         <Typography variant="body2" sx={{minWidth: 120}}>股票代码：{stockCode || '--'}</Typography>
                         <Box sx={{minWidth: 120, display: 'flex', alignItems: 'center'}}>
-                            <span style={{marginRight: 4}}>操作：</span>
-                            {action === '买入' && <Chip label="买入" color="success" size="small"/>}
-                            {action === '卖出' && <Chip label="卖出" color="error" size="small"/>}
-                            {action === '持有' && <Chip label="持有" color="primary" size="small"/>}
+                            <span style={{marginRight: 4}}>风险等级：</span>
+                            {action === '低' && <Chip label="低" color="success" size="small"/>}
+                            {action === '中' && <Chip label="中" color="error" size="small"/>}
+                            {action === '高' && <Chip label="高" color="primary" size="small"/>}
                             {!action && <Chip label="--" size="small"/>}
                         </Box>
                         <Typography variant="body2"
@@ -139,11 +143,13 @@ function App() {
                                 background: 'linear-gradient(90deg, #2196f3 0%, #21cbf3 100%)',
                             },
                             mb: 2}}>
-                            <Tab label="股票详情"/>
-                            <Tab label="股票技术指标分析"/>
-                            <Tab label="股票新闻情绪分析"/>
-                            <Tab label="股票操作建议分析"/>
-                            <Tab label="股票风险提示"/>
+                            <Tab label="价格趋势分析"/>
+                            <Tab label="技术指标解读"/>
+                            <Tab label="新闻情绪分析"/>
+                            <Tab label="未来一周预测"/>
+                            <Tab label="风险评估"/>
+                            <Tab label="操作建议"/>
+                            <Tab label="综合结论"/>
                         </Tabs>
                         <Box sx={{p: 2}}>
                             {tabValue === 0 && <ReactMarkdown>{tabData1}</ReactMarkdown>}
@@ -151,6 +157,8 @@ function App() {
                             {tabValue === 2 && <ReactMarkdown>{tabData3}</ReactMarkdown>}
                             {tabValue === 3 && <ReactMarkdown>{tabData4}</ReactMarkdown>}
                             {tabValue === 4 && <ReactMarkdown>{tabData5}</ReactMarkdown>}
+                            {tabValue === 5 && <ReactMarkdown>{tabData6}</ReactMarkdown>}
+                            {tabValue === 6 && <ReactMarkdown>{tabData7}</ReactMarkdown>}
                         </Box>
                     </Box>
                 </Box>
