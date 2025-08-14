@@ -80,9 +80,12 @@ def tech_tool(symbol: str) -> dict:
 # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
 # model_name = "deepseek-ai/DeepSeek-R1"
 def get_executor():
-    base_url = "http://25t6y78134.oicp.vip/v1"
-    api_key = "qwen"
-    model_name = "qwen"
+    # base_url = "http://25t6y78134.oicp.vip/v1"
+    # api_key = "qwen"
+    # model_name = "qwen"
+    base_url = "https://api.siliconflow.cn/v1"
+    api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
+    model_name = "deepseek-ai/DeepSeek-R1"
     llm = ChatOpenAI(
         model=model_name,
         temperature=0.3,
