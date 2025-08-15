@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Literal
-
+from IPython.display import Image, display
 
 class StockReport(BaseModel):
     # 基础信息
@@ -11,17 +11,17 @@ class StockReport(BaseModel):
     name: str = Field(..., description="股票名称", min_length=2, max_length=20)
     current_price: float = Field(..., description="当前价格", gt=0)
     analysis_date: str = Field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
-
+    target_price: float = Field(..., description="目标价格", gt=0)
     # 分析维度（对应prompt要求的9个部分）
     price_trend_analysis: str = Field(..., description="价格趋势分析（含支撑/压力位、量价关系）", min_length=500)
-    technical_indicators: str = Field(..., description="技术指标解读（MA5/10、MACD、RSI量化分析,不少于2000字,markdown格式）", min_length=2000)
-    news_sentiment_analysis: str = Field(..., description="新闻情绪分析（情感极性量化、政策影响,不少于2000字,markdown格式）", min_length=2000)
-    industry_comparison: str = Field(..., description="行业对比分析（相对强弱、同行业对比,不少于2000字,markdown格式）", min_length=2000)
-    capital_flow_analysis: str = Field(..., description="资金动向分析（主力/北向/融资融券,不少于2000字,markdown格式）", min_length=2000)
+    technical_indicators: str = Field(..., description="技术指标解读（MA5/10、MACD、RSI量化分析,markdown格式）", min_length=200)
+    news_sentiment_analysis: str = Field(..., description="新闻情绪分析（情感极性量化、政策影响,markdown格式）", min_length=200)
+    industry_comparison: str = Field(..., description="行业对比分析（相对强弱、同行业对比,markdown格式）", min_length=200)
+    capital_flow_analysis: str = Field(..., description="资金动向分析（主力/北向/融资融券,markdown格式）", min_length=200)
     risk_assessment: str = Field(..., description="风险评估（波动率、Beta、VaR量化）", min_length=200)
     weekly_forecast: str = Field(..., description="未来一周预测（概率分布、目标价位）", min_length=200)
     operation_recommendation: str = Field(..., description="操作建议（建仓/加仓/减仓/清仓计划）", min_length=200)
-    comprehensive_conclusion: str = Field(..., description="综合结论（投资评级、核心逻辑、风险提示等级）,不少于2000字", min_length=2000)
+    comprehensive_conclusion: str = Field(..., description="综合结论（投资评级、核心逻辑、风险提示等级）", min_length=200)
 
     # 量化指标
     trend_probability: dict = Field(

@@ -80,12 +80,12 @@ def tech_tool(symbol: str) -> dict:
 # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
 # model_name = "deepseek-ai/DeepSeek-R1"
 def get_executor():
-    # base_url = "http://25t6y78134.oicp.vip/v1"
-    # api_key = "qwen"
-    # model_name = "qwen"
-    base_url = "https://api.siliconflow.cn/v1"
-    api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
-    model_name = "deepseek-ai/DeepSeek-R1"
+    base_url = "http://25t6y78134.oicp.vip/v1"
+    api_key = "qwen"
+    model_name = "qwen"
+    # base_url = "https://api.siliconflow.cn/v1"
+    # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
+    # model_name = "deepseek-ai/DeepSeek-R1"
     llm = ChatOpenAI(
         model=model_name,
         temperature=0.3,
@@ -121,7 +121,7 @@ def get_executor():
 3. **平衡视角**：综合多空因素的理性判断及依据
 
 ### 4. 输出规范
-**必须包含以下9个部分**，每部分不少于200字：
+**必须包含以下9个部分**，每部分不少于500字：
 
 1. **价格趋势分析**：
    - 30日价格区间、成交量变化
@@ -181,9 +181,9 @@ def get_executor():
     ])
               .partial(schema=StockReport.model_json_schema())
               )
-
-    agent = create_openai_tools_agent(llm, [get_stock_history, tech_tool, fetch_stock_news_selenium], prompt)
-    executor = AgentExecutor(agent=agent, tools=[get_stock_history, tech_tool, fetch_stock_news_selenium], verbose=True)
+    tools = [get_stock_history, tech_tool, fetch_stock_news_selenium]
+    agent = create_openai_tools_agent(llm, tools, prompt)
+    executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     return executor
 
 

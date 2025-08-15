@@ -39,7 +39,7 @@ function App() {
                 // 'select2:', select2,
                 'stockCode:', stockCode
             )
-            const res = await axios.post('/api/stock/stock', {
+            const res = await axios.post('/api/stock/agent', {
                 symbol: stockCode,
             });
             const data = await res.data;
@@ -54,7 +54,7 @@ function App() {
             setName(data.name);
             setAction(data.risk_level);
             setCurrentPrice(data.current_price);
-            setTargetPrice(JSON.stringify(data.target_prices));
+            setTargetPrice(data.target_price);
         } catch (e) {
             console.log(e);
         } finally {

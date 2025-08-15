@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-@tool
+# @tool
 def fetch_stock_news_selenium(stock_code: str, max_count=10):
     """
     使用 Selenium 从东方财富网爬取指定股票代码的财经新闻，以应对反爬措施。
