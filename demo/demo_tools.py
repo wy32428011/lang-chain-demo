@@ -42,3 +42,6 @@ for tool_call in ai_msg.tool_calls:
     messages.append(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
 result = chain.invoke(messages)
 print(result.content)
+
+
+
