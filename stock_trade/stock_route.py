@@ -29,11 +29,12 @@ def get_agent_report(param: ReportParam):
     :return: 股票报告
     """
     agent = get_agent()
-    # result = agent.invoke({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]})
+    # result = agent.invoke({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]},)
     # print(result["structured_response"])
+    # return result["structured_response"]
     res_list = []
     for step in agent.stream({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]},
-                             stream_mode="values"):
+                             stream_mode="values",):
         res_list.append(step)
         step["messages"][-1].pretty_print()
     # print(res_list)

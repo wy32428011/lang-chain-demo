@@ -3,11 +3,36 @@ from datetime import datetime, timedelta
 import akshare as ak
 import pandas as pd
 from langchain_openai import ChatOpenAI
+from langchain.chat_models import init_chat_model
 from langgraph.prebuilt import create_react_agent
 import logging
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
 import talib as ta
+
+
+def get_llm_model():
+    base_url = "http://25t6y78134.oicp.vip/v1"
+    api_key = "qwen"
+    model_name = "qwen"
+    # base_url = "http://172.24.205.153:30000/v1"
+    # api_key = "qwen"
+    # model_name = "qwen"
+    # base_url = "https://api.siliconflow.cn/v1"
+    # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
+    # model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
+    model = ChatOpenAI(
+        model=model_name,
+        temperature=0.3,
+        max_retries=2,
+        api_key=api_key,
+        base_url=base_url,
+        max_tokens=51200,
+        max_completion_tokens=20480,
+        # streaming=True,
+    )
+    return model
+
 
 def get_stock_history(symbol: str) -> str:
     """
@@ -19,6 +44,7 @@ def get_stock_history(symbol: str) -> str:
     start = end - timedelta(days=30)
     df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
     return df.tail(30).to_string(index=False)
+
 
 def tech_tool(symbol: str) -> dict:
     """
@@ -40,27 +66,16 @@ def tech_tool(symbol: str) -> dict:
         "MACD": macd,
         "RSI": rsi
     }
+
+
 def get_agent():
-    # base_url = "http://25t6y78134.oicp.vip/v1"
-    # api_key = "qwen"
-    # model_name = "qwen"
-    base_url = "https://api.siliconflow.cn/v1"
-    api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
-    model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
-    model = ChatOpenAI(
-        model=model_name,
-        temperature=0.3,
-        max_retries=2,
-        api_key=api_key,
-        base_url=base_url,
-        max_tokens=10240,
-        # max_completion_tokens=10240
-    )
+    # init_chat_model(model_name=model_name, api_key=api_key, base_url=base_url)
     tools = [get_stock_history, tech_tool, fetch_stock_news_selenium]
     agent = create_react_agent(
-        model=model,
+        model=get_llm_model(),
         tools=tools,
-        prompt="""您是具有15年从业经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析，所有的回答必须使用中文。
+        prompt=
+        """您是具有15年从业经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析，所有的回答必须使用中文。
     
     ## 分析框架
     ### 1. 数据收集（必须按顺序调用）
@@ -131,12 +146,25 @@ def get_agent():
        - 风险提示等级（低/中/高）
     
     ### 5. 格式要求
-    - **总字数**：不超过500字
+    - **总字数**：不超过200字
     - **数据引用**：所有分析必须基于实际获取的数据
     - **量化表达**：避免主观描述，使用具体数值""",
         response_format=StockReport.model_json_schema(),
+        # response_format={
+        #     "type": "json_schema",
+        #      "json_schema": {
+        #         "name": "stock_report",
+        #         "schema": {
+        #             **StockReport.model_json_schema(),
+        #             "title": "StockReport",
+        #             "description": "A structured report containing comprehensive stock analysis results"
+        #         },
+        #         "strict": True
+        #     }
+        # },
         # output_parser=StockReport.model_json_schema()
     )
+
     return agent
     # res = agent.invoke(
     #     {"messages": [{"role": "user", "content": "分析股票000718的行情"}]}
