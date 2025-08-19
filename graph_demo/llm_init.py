@@ -1,6 +1,9 @@
 import json
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
+from threading import Lock
 from time import sleep
 
 import akshare as ak
@@ -11,6 +14,7 @@ from langgraph.prebuilt import create_react_agent
 import logging
 
 from pandas import DataFrame
+from tqdm import tqdm
 
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
@@ -21,12 +25,12 @@ os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
 
 
 def get_llm_model():
-    base_url = "http://192.168.60.146:9090/v1"
-    api_key = "qwen"
-    model_name = "qwen"
-    # base_url = "http://172.24.205.153:30000/v1"
+    # base_url = "http://192.168.60.146:9090/v1"
     # api_key = "qwen"
     # model_name = "qwen"
+    base_url = "http://172.24.205.153:9090/v1"
+    api_key = "qwen"
+    model_name = "qwen"
     # base_url = "https://api.siliconflow.cn/v1"
     # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
     # model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
@@ -190,7 +194,9 @@ def do_execute():
     # 读取整个CSV文件
     df = pd.read_csv('../demo/A股股票列表.csv',
                      encoding='utf-8',
-                     dtype={'代码': str, '名称': str})
+                     dtype={'代码': str, '名称': str,'最新价': float})
+    df = df[df['最新价'] <15]
+    df = df[df['涨跌幅'] > 5]
     # 提取单列数据（通过列名）
     column_data = df['代码']  # 例如 df['股票代码']
     # 转换为列表
@@ -198,44 +204,41 @@ def do_execute():
     agent = get_agent()
     total_size = len(stock_codes)
     print(f"总数：{total_size}")
-    num = 0
-    from tqdm import tqdm
-    for num, code in enumerate(tqdm(stock_codes, total=total_size, desc="股票分析进度"), start=1):
+    # 创建线程锁和线程池
+    file_lock = Lock()
+    max_workers = 5  # 根据API速率限制调整并发数
+
+    def process_stock(code):
         try:
-            result_agent = agent.invoke({"messages": [{"role": "user", "content": f"分析股票{code}的行情"}]}, )
-            # res_list = []
-            # for step in agent.stream({"messages": [{"role": "user", "content": f"分析股票{code}的行情"}]},
-            #                          stream_mode="values", ):
-            #     res_list.append(step)
-            #     step["messages"][-1].pretty_print()
-            # # print(res_list)
-            # result_agent =  res_list[-1]
+            result_agent = agent.invoke({
+                "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
+            })
             print(result_agent["structured_response"])
             result = result_agent["structured_response"]
-            if ((result['investment_rating'] == "买入"
-                 or result['investment_rating'] == "强烈买入")):
-                # and result['current_price'] < 11):
 
-                # 将分析结果保存到文件
-                from datetime import datetime
-
-                current_date = datetime.now().strftime("%Y%m%d")
-                filename = f"{code}_{current_date}.txt"
-
-                # 确保output目录存在
-                output_dir = os.path.join(os.path.dirname(__file__), "output")
-                os.makedirs(output_dir, exist_ok=True)
-
-                file_path = os.path.join(output_dir, filename)
-                with open(file_path, "w", encoding="utf-8") as f:
-                    json_str = json.dumps(result, ensure_ascii=False, indent=4)
-                    f.write(json_str)
-
+            if result['investment_rating'] in ("买入", "强烈买入"):
+                with file_lock:
+                    current_date = datetime.now().strftime("%Y%m%d")
+                    filename = f"{code}_{current_date}.txt"
+                    output_dir = os.path.join(os.path.dirname(__file__), "output")
+                    os.makedirs(output_dir, exist_ok=True)
+                    file_path = os.path.join(output_dir, filename)
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        json_str = json.dumps(result, ensure_ascii=False, indent=4)
+                        f.write(json_str)
+            time.sleep(5)  # 保留单个任务休眠
         except Exception as e:
-            print("error---------------->", e)
-        # num += 1
-        # print(f"进度：{num}/{total_size}", )
-        sleep(5)
+            print(f"处理股票{code}时出错: {e}")
+
+    # 使用线程池并行处理
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(process_stock, code): code for code in stock_codes}
+        for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度", unit="只"):
+            code = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                print(f"线程执行出错(股票{code}): {e}")
 
 
 if __name__ == '__main__':
