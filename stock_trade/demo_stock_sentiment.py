@@ -21,6 +21,7 @@ def fetch_stock_news_selenium(stock_code: str, max_count=10):
     :param max_count: 最多返回的新闻数量
     :return: 一个包含新闻字典的列表
     """
+    print("\n使用 Selenium 爬取财经新闻...")
     url = f"https://so.eastmoney.com/news/s?keyword={stock_code}&type=title"
 
     # 设置 Chrome 浏览器选项，例如无头模式（在后台运行）

@@ -16,6 +16,9 @@ from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
 import talib as ta
 
+os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
+os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
+
 
 def get_llm_model():
     base_url = "http://192.168.60.146:9090/v1"
@@ -33,8 +36,8 @@ def get_llm_model():
         max_retries=2,
         api_key=api_key,
         base_url=base_url,
-        max_tokens=40960,
-        max_completion_tokens=20480,
+        # max_tokens=131072,
+        # max_completion_tokens=20480,
         # timeout=20
         # streaming=True,
     )
@@ -52,12 +55,14 @@ def get_stock_info(symbol: str) -> str:
     stock_info = df[df["代码"] == symbol]
     return stock_info.to_string(index=False)
 
+
 def get_stock_history(symbol: str) -> str:
     """
     获取近30天股票日线历史行情
     :param symbol: 股票编码
     :return:
     """
+    print("\n=================get_stock_history start====================")
     end = datetime.now()
     start = end - timedelta(days=30)
     df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
@@ -70,6 +75,7 @@ def tech_tool(symbol: str) -> dict:
     :param symbol: 股票编码
     :return: 技术指标数据
     """
+    print("\n=================tech_tool start====================")
     df = ak.stock_zh_a_hist(symbol=symbol, period="daily",
                             start_date=(datetime.now() - timedelta(days=60)).strftime("%Y%m%d"), adjust="")
     close = pd.to_numeric(df["收盘"])
@@ -96,7 +102,7 @@ def get_agent():
         """您是具有丰富经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析，所有的回答必须使用中文。
     
     ## 分析框架
-    ### 1. 数据收集（必须按顺序调用）
+    ### 1. 数据收集（必须按顺序调用，每个方法仅执行一次）
     - **历史行情**：调用get_stock_history获取30日K线数据
     - **技术指标**：调用tech_tool获取MA5/MA10、MACD、RSI指标  
     - **新闻舆情**：调用fetch_stock_news_selenium获取近7日新闻并进行情感分析
@@ -116,7 +122,7 @@ def get_agent():
     3. **平衡视角**：综合多空因素的理性判断及依据
     
     ### 4. 输出规范
-    **必须包含以下9个部分**，每部分不少于500字：
+    **必须包含以下9个部分**，每部分不少于200字：
     
     1. **价格趋势分析**：
        - 30日价格区间、成交量变化
@@ -179,7 +185,8 @@ def get_agent():
     # print(res['structured_response'])
     # return
 
-if __name__ == '__main__':
+
+def do_execute():
     # 读取整个CSV文件
     df = pd.read_csv('../demo/A股股票列表.csv',
                      encoding='utf-8',
@@ -189,13 +196,25 @@ if __name__ == '__main__':
     # 转换为列表
     stock_codes = column_data.tolist()
     agent = get_agent()
-    for code in stock_codes:
+    total_size = len(stock_codes)
+    print(f"总数：{total_size}")
+    num = 0
+    from tqdm import tqdm
+    for num, code in enumerate(tqdm(stock_codes, total=total_size, desc="股票分析进度"), start=1):
         try:
             result_agent = agent.invoke({"messages": [{"role": "user", "content": f"分析股票{code}的行情"}]}, )
+            # res_list = []
+            # for step in agent.stream({"messages": [{"role": "user", "content": f"分析股票{code}的行情"}]},
+            #                          stream_mode="values", ):
+            #     res_list.append(step)
+            #     step["messages"][-1].pretty_print()
+            # # print(res_list)
+            # result_agent =  res_list[-1]
             print(result_agent["structured_response"])
-            result  = result_agent["structured_response"]
-            if (result['investment_rating'] == "买入"
-                    or result['investment_rating'] == "强烈买入"):
+            result = result_agent["structured_response"]
+            if ((result['investment_rating'] == "买入"
+                 or result['investment_rating'] == "强烈买入")):
+                # and result['current_price'] < 11):
 
                 # 将分析结果保存到文件
                 from datetime import datetime
@@ -213,8 +232,14 @@ if __name__ == '__main__':
                     f.write(json_str)
 
         except Exception as e:
-            print("error---------------->",e)
+            print("error---------------->", e)
+        # num += 1
+        # print(f"进度：{num}/{total_size}", )
         sleep(5)
+
+
+if __name__ == '__main__':
+    do_execute()
     # res_list = []
     # for step in agent.stream({"messages": [{"role": "user", "content": "分析股票000718的行情"}]},
     #                          stream_mode="values",):

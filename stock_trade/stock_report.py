@@ -47,7 +47,7 @@ class StockReport(BaseModel):
     )
     risk_level: Literal["低", "中", "高"] = Field(..., description="综合风险等级：低、中、高")
     investment_rating: Literal["强烈买入", "买入", "中性", "卖出", "强烈卖出"] = Field(...,
-                                                                                       description="投资评级：强烈买入、买入、中性、卖出、强烈卖出")
+                                                                                       description="投资评级：强烈买入、买入、中性、卖出、强烈卖出,该字段必须存在")
 
     # 关键技术指标快照
     technical_snapshot: dict = Field(
