@@ -48,16 +48,23 @@ def get_llm_model():
     return model
 
 
-def get_stock_info(symbol: str) -> str:
+def get_stock_info():
     """
     获取股票信息
     :param symbol: 股票编码
     :return: 股票信息
     """
+    # 获取所有A股实时行情数据（含股票代码）
+    data = ak.stock_zh_a_spot_em()
+    # 提取股票代码列
+    stock_codes = data["代码"].tolist()
+    data_all = data[['序号', '代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量',
+                     '成交额', '振幅', '最高', '最低', '今开', '昨收', '量比',
+                     '换手率', '市盈率-动态', '市净率', '总市值', '流通市值', '涨速', '5分钟涨跌',
+                     '60日涨跌幅', '年初至今涨跌幅']]
+    print(f"共获取 {len(stock_codes)} 只A股股票代码")
 
-    df = ak.stock_zh_a_spot_em()
-    stock_info = df[df["代码"] == symbol]
-    return stock_info.to_string(index=False)
+    data_all.to_csv("A股股票列表.csv", index=False, encoding="utf_8")
 
 
 def get_stock_history(symbol: str) -> str:
@@ -191,25 +198,27 @@ def get_agent():
 
 
 def do_execute():
+    get_stock_info()
     # 读取整个CSV文件
-    df = pd.read_csv('../demo/A股股票列表.csv',
+    df = pd.read_csv('A股股票列表.csv',
                      encoding='utf-8',
-                     dtype={'代码': str, '名称': str,'最新价': float})
-    df = df[df['最新价'] <15]
+                     dtype={'代码': str, '名称': str, '最新价': float})
+    df = df[df['最新价'] < 15]
     df = df[df['涨跌幅'] > 5]
     # 提取单列数据（通过列名）
     column_data = df['代码']  # 例如 df['股票代码']
     # 转换为列表
     stock_codes = column_data.tolist()
-    agent = get_agent()
+    # agent = get_agent()
     total_size = len(stock_codes)
     print(f"总数：{total_size}")
     # 创建线程锁和线程池
     file_lock = Lock()
-    max_workers = 5  # 根据API速率限制调整并发数
+    max_workers = 20  # 根据API速率限制调整并发数
 
     def process_stock(code):
         try:
+            agent = get_agent()
             result_agent = agent.invoke({
                 "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
             })
@@ -220,7 +229,7 @@ def do_execute():
                 with file_lock:
                     current_date = datetime.now().strftime("%Y%m%d")
                     filename = f"{code}_{current_date}.txt"
-                    output_dir = os.path.join(os.path.dirname(__file__), "output")
+                    output_dir = os.path.join(os.path.dirname(__file__), str(current_date))
                     os.makedirs(output_dir, exist_ok=True)
                     file_path = os.path.join(output_dir, filename)
                     with open(file_path, "w", encoding="utf-8") as f:
