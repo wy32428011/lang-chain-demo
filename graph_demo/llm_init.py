@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
 os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
-MAX_WORKERS = 5
+MAX_WORKERS = 2
 
 def get_llm_model():
     # base_url = "http://192.168.60.146:9090/v1"
