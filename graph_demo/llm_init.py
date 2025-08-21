@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import time
@@ -25,12 +26,12 @@ os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
 
 
 def get_llm_model():
-    # base_url = "http://192.168.60.146:9090/v1"
-    # api_key = "qwen"
-    # model_name = "qwen"
-    base_url = "http://172.24.205.153:9090/v1"
+    base_url = "http://192.168.60.146:9090/v1"
     api_key = "qwen"
     model_name = "qwen"
+    # base_url = "http://172.24.205.153:9090/v1"
+    # api_key = "qwen"
+    # model_name = "qwen"
     # base_url = "https://api.siliconflow.cn/v1"
     # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
     # model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
@@ -48,14 +49,14 @@ def get_llm_model():
     return model
 
 
-def get_stock_info():
+async def get_stock_info():
     """
     获取股票信息
     :param symbol: 股票编码
     :return: 股票信息
     """
     # 获取所有A股实时行情数据（含股票代码）
-    data = ak.stock_zh_a_spot_em()
+    data = await ak.stock_zh_a_spot_em()
     # 提取股票代码列
     stock_codes = data["代码"].tolist()
     data_all = data[['序号', '代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量',
@@ -67,7 +68,7 @@ def get_stock_info():
     data_all.to_csv("A股股票列表.csv", index=False, encoding="utf_8")
 
 
-def get_stock_history(symbol: str) -> str:
+async def get_stock_history(symbol: str) -> str:
     """
     获取近30天股票日线历史行情
     :param symbol: 股票编码
@@ -76,18 +77,18 @@ def get_stock_history(symbol: str) -> str:
     print("\n=================get_stock_history start====================")
     end = datetime.now()
     start = end - timedelta(days=30)
-    df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
+    df = await ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
     return df.tail(30).to_string(index=False)
 
 
-def tech_tool(symbol: str) -> dict:
+async def tech_tool(symbol: str) -> dict:
     """
     计算技术指标：计算MA5/MA10、MACD、RSI
     :param symbol: 股票编码
     :return: 技术指标数据
     """
     print("\n=================tech_tool start====================")
-    df = ak.stock_zh_a_hist(symbol=symbol, period="daily",
+    df = await ak.stock_zh_a_hist(symbol=symbol, period="daily",
                             start_date=(datetime.now() - timedelta(days=60)).strftime("%Y%m%d"), adjust="")
     close = pd.to_numeric(df["收盘"])
 
@@ -214,12 +215,12 @@ def do_execute():
     print(f"总数：{total_size}")
     # 创建线程锁和线程池
     file_lock = Lock()
-    max_workers = 20  # 根据API速率限制调整并发数
+    max_workers = 3  # 根据API速率限制调整并发数
 
-    def process_stock(code):
+    async def process_stock(code):
         try:
             agent = get_agent()
-            result_agent = agent.invoke({
+            result_agent = await agent.ainvoke({
                 "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
             })
             print(result_agent["structured_response"])
@@ -241,7 +242,7 @@ def do_execute():
 
     # 使用线程池并行处理
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(process_stock, code): code for code in stock_codes}
+        futures = {executor.submit(asyncio.run, process_stock(code)): code for code in stock_codes}
         for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度", unit="只"):
             code = futures[future]
             try:
