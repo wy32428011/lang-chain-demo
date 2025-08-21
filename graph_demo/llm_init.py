@@ -49,14 +49,14 @@ def get_llm_model():
     return model
 
 
-async def get_stock_info():
+def get_stock_info():
     """
     获取股票信息
     :param symbol: 股票编码
     :return: 股票信息
     """
     # 获取所有A股实时行情数据（含股票代码）
-    data = await ak.stock_zh_a_spot_em()
+    data = ak.stock_zh_a_spot_em()
     # 提取股票代码列
     stock_codes = data["代码"].tolist()
     data_all = data[['序号', '代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量',
@@ -204,8 +204,8 @@ def do_execute():
     df = pd.read_csv('A股股票列表.csv',
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
-    df = df[df['最新价'] < 15]
-    df = df[df['涨跌幅'] > 5]
+    df = df[df['昨收'] < 15]
+    df = df[df['年初至今涨跌幅'] > 5]
     # 提取单列数据（通过列名）
     column_data = df['代码']  # 例如 df['股票代码']
     # 转换为列表
@@ -215,7 +215,7 @@ def do_execute():
     print(f"总数：{total_size}")
     # 创建线程锁和线程池
     file_lock = Lock()
-    max_workers = 3  # 根据API速率限制调整并发数
+    max_workers = 10  # 根据API速率限制调整并发数
 
     async def process_stock(code):
         try:
@@ -243,7 +243,7 @@ def do_execute():
     # 使用线程池并行处理
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(asyncio.run, process_stock(code)): code for code in stock_codes}
-        for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度", unit="只"):
+        for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度"):
             code = futures[future]
             try:
                 future.result()
