@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
 os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
-
+MAX_WORKERS = 5
 
 def get_llm_model():
     # base_url = "http://192.168.60.146:9090/v1"
@@ -223,7 +223,7 @@ def do_execute():
     print(f"总数：{total_size}")
     # 创建线程锁和线程池
     file_lock = Lock()
-    max_workers = 2  # 根据API速率限制调整并发数
+    # max_workers = 2  # 根据API速率限制调整并发数
 
     async def process_stock(code):
         try:
@@ -258,7 +258,7 @@ def do_execute():
             print(f"处理股票{code}时出错: {ex}")
 
     # 使用线程池并行处理
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # futures = {executor.submit(asyncio.run, process_stock(code)): code for code in stock_codes}
         futures = [executor.submit(asyncio.run, process_stock(code)) for code in stock_codes]
         for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度"):
