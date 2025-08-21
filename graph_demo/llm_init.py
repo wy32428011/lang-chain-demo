@@ -77,6 +77,7 @@ async def get_stock_history(symbol: str) -> str:
     print("\n=================get_stock_history start====================")
     end = datetime.now()
     start = end - timedelta(days=30)
+    await asyncio.sleep(0.1)
     df = await ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
     return df.tail(30).to_string(index=False)
 
@@ -88,7 +89,8 @@ async def tech_tool(symbol: str) -> dict:
     :return: 技术指标数据
     """
     print("\n=================tech_tool start====================")
-    df = await ak.stock_zh_a_hist(symbol=symbol, period="daily",
+    await asyncio.sleep(0.1)
+    df = ak.stock_zh_a_hist(symbol=symbol, period="daily",
                             start_date=(datetime.now() - timedelta(days=60)).strftime("%Y%m%d"), adjust="")
     close = pd.to_numeric(df["收盘"])
 
@@ -205,7 +207,7 @@ def do_execute():
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
     df = df[df['昨收'] < 15]
-    df = df[df['年初至今涨跌幅'] > 5]
+    df = df[df['年初至今涨跌幅'] > 25]
     # 提取单列数据（通过列名）
     column_data = df['代码']  # 例如 df['股票代码']
     # 转换为列表
