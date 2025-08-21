@@ -20,18 +20,24 @@ from tqdm import tqdm
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
 import talib as ta
-
+# # 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.FileHandler("stock_analysis.log"), logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
 os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
 
 
 def get_llm_model():
-    base_url = "http://192.168.60.146:9090/v1"
-    api_key = "qwen"
-    model_name = "qwen"
-    # base_url = "http://172.24.205.153:9090/v1"
+    # base_url = "http://192.168.60.146:9090/v1"
     # api_key = "qwen"
     # model_name = "qwen"
+    base_url = "http://172.24.205.153:9090/v1"
+    api_key = "qwen"
+    model_name = "qwen"
     # base_url = "https://api.siliconflow.cn/v1"
     # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
     # model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
@@ -207,7 +213,7 @@ def do_execute():
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
     df = df[df['昨收'] < 15]
-    df = df[df['年初至今涨跌幅'] > 25]
+    df = df[df['年初至今涨跌幅'] > 80]
     # 提取单列数据（通过列名）
     column_data = df['代码']  # 例如 df['股票代码']
     # 转换为列表
@@ -217,15 +223,24 @@ def do_execute():
     print(f"总数：{total_size}")
     # 创建线程锁和线程池
     file_lock = Lock()
-    max_workers = 10  # 根据API速率限制调整并发数
+    max_workers = 2  # 根据API速率限制调整并发数
 
     async def process_stock(code):
         try:
             agent = get_agent()
-            result_agent = await agent.ainvoke({
-                "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
-            })
-            print(result_agent["structured_response"])
+            print(f"\n开始分析股票{code}")
+            # result_agent = await agent.ainvoke({
+            #     "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
+            # })
+            result_agent = None
+            async for step in agent.astream({"messages": [{"role": "user", "content": f"分析股票{code}的行情\n"}]},
+                                     stream_mode="values",):
+                step["messages"][-1].pretty_print()
+                result_agent = step
+            # print("==================================================>",result_agent)
+            if not result_agent or "structured_response" not in result_agent:
+                print(f"股票{code}未返回有效结果")
+                return
             result = result_agent["structured_response"]
 
             if result['investment_rating'] in ("买入", "强烈买入"):
@@ -238,15 +253,16 @@ def do_execute():
                     with open(file_path, "w", encoding="utf-8") as f:
                         json_str = json.dumps(result, ensure_ascii=False, indent=4)
                         f.write(json_str)
-            time.sleep(5)  # 保留单个任务休眠
-        except Exception as e:
-            print(f"处理股票{code}时出错: {e}")
+            await asyncio.sleep(5)  # 保留单个任务休眠
+        except Exception as ex:
+            print(f"处理股票{code}时出错: {ex}")
 
     # 使用线程池并行处理
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(asyncio.run, process_stock(code)): code for code in stock_codes}
+        # futures = {executor.submit(asyncio.run, process_stock(code)): code for code in stock_codes}
+        futures = [executor.submit(asyncio.run, process_stock(code)) for code in stock_codes]
         for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度"):
-            code = futures[future]
+            code = stock_codes[futures.index(future)]
             try:
                 future.result()
             except Exception as e:
