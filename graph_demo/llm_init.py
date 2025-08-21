@@ -78,7 +78,7 @@ async def get_stock_history(symbol: str) -> str:
     end = datetime.now()
     start = end - timedelta(days=30)
     await asyncio.sleep(0.1)
-    df = await ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
+    df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
     return df.tail(30).to_string(index=False)
 
 
