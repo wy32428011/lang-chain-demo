@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import ReactMarkdown from 'react-markdown';
+import Sidebar from './components/Sidebar';
+import AnalysisResults from './components/AnalysisResults';
 
 
 function App() {
@@ -31,6 +33,7 @@ function App() {
     const [currentPrice, setCurrentPrice] = useState(0.0);
     const [targetPrice, setTargetPrice] = useState('暂无信息');
     const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState('analysis'); // 'analysis' | 'results'
     const getData = async () => {
         setLoading(true);
         try {
@@ -66,22 +69,43 @@ function App() {
     })
     return (
         <>
-            <Container fixed sx={{height: '100%', width: '100%',minWidth: '100%',
+            <Container fixed sx={{ 
+                height: '100%', 
+                width: '100%',
+                minWidth: '100%',
+                display: 'flex',
+                p: 0
             }}>
+                {/* 左侧菜单 */}
+                <Sidebar onMenuSelect={setCurrentPage} />
+                
+                {/* 主内容区域 */}
                 <Box sx={{
+                    ml: 3,
+                    flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    minHeight:'100vh',
-                    minWidth: '100%',
+                    minHeight: '100vh',
                     height: '100%',
-                    // background: 'linear-gradient(90deg, #2196f3 0%, #21cbf3 100%)',
-                    borderRadius: 3,
-                    boxShadow: 3,
-                    p: 3,
-                    mb: 3,
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    p: 3
                 }}>
+                  
+                  {currentPage === 'results' ? (
+                    <AnalysisResults />
+                  ) : (
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight:'100vh',
+                        minWidth: '100%',
+                        height: '100%',
+                        borderRadius: 3,
+                        boxShadow: 3,
+                        p: 3,
+                        mb: 3,
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                    }}>
                     <Typography variant="h6" sx={{fontWeight: 'bold'}}>专业分析</Typography>
                     <Box sx={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center',
                         background: 'rgba(255,255,255,0.85)',
@@ -161,6 +185,8 @@ function App() {
                             {tabValue === 6 && <ReactMarkdown>{tabData7}</ReactMarkdown>}
                         </Box>
                     </Box>
+                </Box>
+                )}
                 </Box>
             </Container>
         </>

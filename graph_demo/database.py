@@ -6,7 +6,7 @@ import os
 # MySQL数据库配置
 MYSQL_USER = os.getenv('MYSQL_USER', 'root')  # 替换为你的MySQL用户名
 MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', 'root')  # 替换为你的MySQL密码
-MYSQL_HOST = os.getenv('MYSQL_HOST', '192.168.49.222')
+MYSQL_HOST = os.getenv('MYSQL_HOST', '192.168.50.205')
 MYSQL_PORT = os.getenv('MYSQL_PORT', '3306')
 MYSQL_DB = os.getenv('MYSQL_DB', 'investment_ratings')
 
