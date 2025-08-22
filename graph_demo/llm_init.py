@@ -28,7 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
 os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
-MAX_WORKERS = 2
+MAX_WORKERS = 10
 
 def get_llm_model():
     base_url = "http://192.168.60.146:9090/v1"
@@ -49,7 +49,7 @@ def get_llm_model():
         # max_tokens=131072,
         # max_completion_tokens=20480,
         # timeout=20
-        streaming=True,
+        # streaming=True,
     )
     return model
 
@@ -226,15 +226,15 @@ def do_execute():
 
     async def process_stock(code):
         try:
-            agent = get_agent()
+
             print(f"\n开始分析股票{code}")
             # result_agent = await agent.ainvoke({
             #     "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
             # })
             result_agent = None
-            async for step in agent.astream({"messages": [{"role": "user", "content": f"分析股票{code}的行情\n"}]},
+            async for step in get_agent().astream({"messages": [{"role": "user", "content": f"分析股票{code}的行情\n"}]},
                                      stream_mode="values",):
-                step["messages"][-1].pretty_print()
+                # step["messages"][-1].pretty_print()
                 result_agent = step
             # print("==================================================>",result_agent)
             if not result_agent or "structured_response" not in result_agent:
@@ -269,7 +269,7 @@ def do_execute():
                         f.write(json_str)
             await asyncio.sleep(5)  # 保留单个任务休眠
         except Exception as ex:
-            print(f"处理股票{code}时出错: {ex}")
+            logger.error(f"处理股票{code}时出错: {ex}")
 
     # 使用线程池并行处理
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
