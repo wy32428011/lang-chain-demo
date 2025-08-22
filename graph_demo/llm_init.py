@@ -1,25 +1,24 @@
 import asyncio
 import json
+import logging
 import os
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from threading import Lock
-from time import sleep
 
 import akshare as ak
 import pandas as pd
+import talib as ta
 from langchain_openai import ChatOpenAI
-from langchain.chat_models import init_chat_model
 from langgraph.prebuilt import create_react_agent
-import logging
-
-from pandas import DataFrame
+from sqlalchemy.orm import Session
 from tqdm import tqdm
 
+from graph_demo.database import get_db
+from graph_demo.models import InvestmentRating
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
-import talib as ta
+
 # # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -32,25 +31,25 @@ os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
 MAX_WORKERS = 2
 
 def get_llm_model():
-    # base_url = "http://192.168.60.146:9090/v1"
-    # api_key = "qwen"
-    # model_name = "qwen"
-    base_url = "http://172.24.205.153:9090/v1"
+    base_url = "http://192.168.60.146:9090/v1"
     api_key = "qwen"
     model_name = "qwen"
+    # base_url = "http://172.24.205.153:9090/v1"
+    # api_key = "qwen"
+    # model_name = "qwen"
     # base_url = "https://api.siliconflow.cn/v1"
     # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
     # model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
     model = ChatOpenAI(
         model=model_name,
-        temperature=0.3,
-        max_retries=2,
+        temperature=0.1,
+        # max_retries=2,
         api_key=api_key,
         base_url=base_url,
         # max_tokens=131072,
         # max_completion_tokens=20480,
         # timeout=20
-        # streaming=True,
+        streaming=True,
     )
     return model
 
@@ -244,6 +243,21 @@ def do_execute():
             result = result_agent["structured_response"]
 
             if result['investment_rating'] in ("买入", "强烈买入"):
+                db: Session = next(get_db())
+                # 假设result中包含symbol和name信息
+                rating_record = InvestmentRating(
+                    symbol=result.get('symbol', ''),
+                    name=result.get('name', ''),
+                    rating=result['investment_rating'],
+                    current_price=result.get('current_price', None),
+                    target_price=result.get('target_price', None),
+                    analysis_date=datetime.strptime(result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
+                        'analysis_date') else None,
+                    result_json=result
+                )
+                db.add(rating_record)
+                db.commit()
+                db.refresh(rating_record)
                 with file_lock:
                     current_date = datetime.now().strftime("%Y%m%d")
                     filename = f"{code}_{current_date}.txt"

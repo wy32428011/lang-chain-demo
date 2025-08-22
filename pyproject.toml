@@ -9,4 +9,7 @@ dependencies = [
     "talib",
     "langchain",
     "langchain_openai",
-    "langchain_core",]
+    "langchain_core",
+    "sqlalchemy",
+    "mysql-connector-python"
+]
