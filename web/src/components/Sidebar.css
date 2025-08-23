@@ -1,0 +1,51 @@
+/* 左侧菜单配色方案 */
+.sidebar-container {
+  background: linear-gradient(180deg, var(--primary-dark), var(--primary-blue)) !important;
+  border-right: 1px solid var(--border-color) !important;
+}
+
+.sidebar-container .MuiList-root {
+  padding: 16px 8px;
+}
+
+.sidebar-container .MuiListItemButton-root {
+  border-radius: 8px;
+  margin: 4px 0;
+  color: white !important;
+  transition: all 0.2s ease;
+}
+
+.sidebar-container .MuiListItemButton-root:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translateX(4px);
+}
+
+.sidebar-container .MuiListItemButton-root:active {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.sidebar-container .MuiListItemIcon-root {
+  color: rgba(255, 255, 255, 0.8) !important;
+  min-width: 40px !important;
+}
+
+.sidebar-container .MuiListItemText-primary {
+  color: white !important;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* 菜单项选中状态 */
+.sidebar-container .MuiListItemButton-root.Mui-selected {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-left: 3px solid var(--primary-light);
+}
+
+.sidebar-container .MuiListItemButton-root.Mui-selected .MuiListItemIcon-root {
+  color: var(--primary-light) !important;
+}
+
+/* 图标样式 */
+.sidebar-container .MuiSvgIcon-root {
+  font-size: 20px;
+}

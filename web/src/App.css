@@ -1,42 +1,89 @@
-/*#root {*/
-/*  max-width: 1280px;*/
-/*  margin: 0 auto;*/
-/*  padding: 2rem;*/
-/*  text-align: center;*/
-/*}*/
+/* 金融应用配色方案 */
+:root {
+  /* 主色调 - 专业金融蓝色系 */
+  --primary-blue: #1976d2;
+  --primary-dark: #115293;
+  --primary-light: #42a5f5;
+  
+  /* 辅助色 - 金融数据色系 */
+  --success-green: #2e7d32;  /* 上涨/盈利 */
+  --error-red: #d32f2f;       /* 下跌/亏损 */
+  --warning-orange: #f57c00;  /* 警告/中性 */
+  
+  /* 中性色 */
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --background-light: #f8f9fa;
+  --border-color: #e0e0e0;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
-/*.logo {*/
-/*  height: 6em;*/
-/*  padding: 1.5em;*/
-/*  will-change: filter;*/
-/*  transition: filter 300ms;*/
-/*}*/
-/*.logo:hover {*/
-/*  filter: drop-shadow(0 0 2em #646cffaa);*/
-/*}*/
-/*.logo.react:hover {*/
-/*  filter: drop-shadow(0 0 2em #61dafbaa);*/
-/*}*/
+/* 全局组件样式 */
+.MuiButton-containedPrimary {
+  background: linear-gradient(45deg, var(--primary-blue), var(--primary-dark));
+  font-weight: 600;
+}
 
-/*@keyframes logo-spin {*/
-/*  from {*/
-/*    transform: rotate(0deg);*/
-/*  }*/
-/*  to {*/
-/*    transform: rotate(360deg);*/
-/*  }*/
-/*}*/
+.MuiButton-containedPrimary:hover {
+  background: linear-gradient(45deg, var(--primary-dark), var(--primary-blue));
+}
 
-/*@media (prefers-reduced-motion: no-preference) {*/
-/*  a:nth-of-type(2) .logo {*/
-/*    animation: logo-spin infinite 20s linear;*/
-/*  }*/
-/*}*/
+.MuiTabs-indicator {
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-light)) !important;
+}
 
-/*.card {*/
-/*  padding: 2em;*/
-/*}*/
+.MuiTab-root {
+  color: var(--text-secondary) !important;
+  font-weight: 500;
+}
 
-/*.read-the-docs {*/
-/*  color: #888;*/
-/*}*/
+.MuiTab-root.Mui-selected {
+  color: var(--primary-blue) !important;
+  font-weight: 600;
+}
+
+.MuiChip-colorSuccess {
+  background-color: var(--success-green) !important;
+  color: white !important;
+}
+
+.MuiChip-colorError {
+  background-color: var(--error-red) !important;
+  color: white !important;
+}
+
+.MuiChip-colorPrimary {
+  background-color: var(--warning-orange) !important;
+  color: white !important;
+}
+
+/* 卡片组件样式 */
+.card-container {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+
+/* 输入框样式 */
+.MuiInput-root {
+  color: var(--text-primary) !important;
+}
+
+.MuiInput-root:before {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.MuiInput-root:after {
+  border-bottom: 2px solid var(--primary-blue) !important;
+}
+
+/* 分隔线样式 */
+.MuiDivider-root {
+  background-color: var(--border-color) !important;
+}
+
+/* 进度条样式 */
+.MuiLinearProgress-barColorPrimary {
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-light));
+}

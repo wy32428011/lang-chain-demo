@@ -1,5 +1,6 @@
 import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { Dashboard, Analytics, Settings } from '@mui/icons-material';
+import './Sidebar.css';
 
 const menuItems = [
   { text: '分析结果', icon: <Dashboard />, page: 'results' },
@@ -23,6 +24,7 @@ export default function Sidebar({ width = 240, onMenuSelect }: SidebarProps) {
         borderColor: 'divider',
         boxShadow: 2,
       }}
+      className="sidebar-container"
     >
       <List>
         {menuItems.map((item) => (

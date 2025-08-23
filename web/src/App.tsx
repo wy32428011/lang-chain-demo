@@ -105,15 +105,34 @@ function App() {
                         mb: 3,
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid var(--border-color)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          width: '200px',
+                          height: '200px',
+                          background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)',
+                          opacity: 0.1,
+                          zIndex: 0,
+                        },
                     }}>
                     <Typography variant="h6" sx={{fontWeight: 'bold'}}>专业分析</Typography>
                     <Box sx={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center',
-                        background: 'rgba(255,255,255,0.85)',
+                        background: 'rgba(255, 255, 255, 0.08)',
                         borderRadius: 2,
-                        boxShadow: 1,
+                        boxShadow: '0 4px 12px rgba(25, 118, 210, 0.15)',
                         px: 2,
                         py: 1,
-                        gap: 2}}>
+                        gap: 2,
+                        border: '1px solid rgba(25, 118, 210, 0.2)',
+                        position: 'relative',
+                        zIndex: 1,
+                    }}>
 
                         {/*<Select value={select1} onChange={e => setSelect1(e.target.value)} sx={{minWidth: 120}}>*/}
                         {/*    <MenuItem value="option1">选项1</MenuItem>*/}
@@ -134,11 +153,14 @@ function App() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        background: 'rgba(255,255,255,0.85)',
+                        background: 'rgba(255, 255, 255, 0.08)',
                         borderRadius: 2,
-                        boxShadow: 2,
+                        boxShadow: '0 4px 12px rgba(25, 118, 210, 0.15)',
                         p: 2,
-                        mb: 2
+                        mb: 2,
+                        border: '1px solid rgba(25, 118, 210, 0.2)',
+                        position: 'relative',
+                        zIndex: 1,
                     }}>
                         <Typography variant="body2" sx={{minWidth: 120}}>股票名称：{name || '--'}</Typography>
                         <Typography variant="body2" sx={{minWidth: 120}}>股票代码：{stockCode || '--'}</Typography>
@@ -158,7 +180,21 @@ function App() {
                     {loading &&
                         <LinearProgress sx={{position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1000}}/>}
                     <Divider sx={{my: 2}}/>
-                    <Box sx={{flex: 1, display: 'flex', flexDirection: 'column',background: 'rgba(255,255,255,0.92)', borderRadius: 3, boxShadow: 3, p: 2, mt: 2,                    minWidth: '100%',
+                    <Box sx={{flex: 1, display: 'flex', flexDirection: 'column',background: 'rgba(255, 255, 255, 0.1)', borderRadius: 3, boxShadow: '0 8px 24px rgba(59, 130, 246, 0.15)', p: 2, mt: 2,                    minWidth: '100%',
+                        border: '1px solid rgba(25, 118, 210, 0.2)',
+                        position: 'relative',
+                        zIndex: 1,
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          width: '150px',
+                          height: '150px',
+                          background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)',
+                          opacity: 0.05,
+                          zIndex: 0,
+                        },
                     }}>
                         <Tabs value={tabValue} onChange={(_e, v) => setTabValue(v)} variant="fullWidth" centered sx={{ minHeight: 48,
                             '& .MuiTabs-indicator': {

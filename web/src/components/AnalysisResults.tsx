@@ -425,13 +425,13 @@ export default function AnalysisResults({ onSelectResult }: AnalysisResultsProps
 
   return (
     <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+      <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3, color: 'rgba(0, 0, 0, 0.87)' }}>
         分析结果列表
       </Typography>
 
       {/* 搜索条件区域 */}
-      <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', mb: 2 }}>
+      <Paper sx={{ p: 3, mb: 3, bgcolor: 'rgba(255, 255, 255, 0.08)' }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', mb: 2, color: 'rgba(0, 0, 0, 0.87)' }}>
           搜索条件
         </Typography>
         <Box component="form" onSubmit={handleSearchSubmit}>
@@ -533,11 +533,11 @@ export default function AnalysisResults({ onSelectResult }: AnalysisResultsProps
         </Box>
       )}
       
-      <Typography variant="subtitle1" sx={{ mb: 2, color: 'text.secondary' }}>
+      <Typography variant="subtitle1" sx={{ mb: 2, color: 'rgba(0, 0, 0, 0.6)' }}>
         共找到 {filteredResults.length} 条分析结果
       </Typography>
 
-      <List sx={{ width: '100%', bgcolor: 'background.paper', flex: 1 }}>
+      <List sx={{ width: '100%', bgcolor: 'rgba(255, 255, 255, 0.1)', flex: 1 }}>
         {paginatedResults.map((result, index) => (
           <Box key={result.id}>
             <ListItem 
@@ -555,10 +555,10 @@ export default function AnalysisResults({ onSelectResult }: AnalysisResultsProps
               <ListItemText
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography variant="h6" component="span">
+                    <Typography variant="h6" component="span" sx={{ color: 'rgba(0, 0, 0, 0.87)' }}>
                       {result.stockName}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" component="span">
+                    <Typography variant="body2" component="span" sx={{ color: 'rgba(0, 0, 0, 0.6)' }}>
                       ({result.stockCode})
                     </Typography>
                     {getTrendIcon(result.trend)}
@@ -589,7 +589,7 @@ export default function AnalysisResults({ onSelectResult }: AnalysisResultsProps
                         variant="filled"
                       />
                     </Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: 'rgba(0, 0, 0, 0.6)' }}>
                       分析日期: {result.analysisDate}
                     </Typography>
                   </Box>
