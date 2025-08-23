@@ -388,3 +388,8 @@ if __name__ == '__main__':
     #                          stream_mode="values",):
     #     print( step)
     #     step["messages"][-1].pretty_print()
+
+# 添加函数导出，方便其他模块调用
+def main():
+    """主函数，供定时任务调用"""
+    do_execute()
