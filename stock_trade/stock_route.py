@@ -1,16 +1,37 @@
 import json
 import os
+from typing import List
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from graph_demo.database import get_db
 from graph_demo.llm_init import get_agent
+from graph_demo.models import InvestmentRating
 from stock_trade.demo_stock import get_executor
 
 stock_router = APIRouter()
 class ReportParam(BaseModel):
     symbol: str = Field(..., description="股票代码")
+
+class InvestmentRatingResponse(BaseModel):
+    id: int
+    symbol: str
+    name: str
+    rating: str
+    current_price: float
+    target_price: float
+    analysis_date: str
+    created_at: str
+
+class PaginatedResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[InvestmentRatingResponse]
 @stock_router.post("/stock")
 def get_stock_report(param: ReportParam):
     """
@@ -22,6 +43,54 @@ def get_stock_report(param: ReportParam):
     result = executor.invoke({"input": f"请分析 股票 {param.symbol} 的近期行情"})
     print(result["output"])
     return json.loads(result["output"])
+
+class RatingQueryParams(BaseModel):
+    page: int = Field(1, ge=1, description="页码")
+    page_size: int = Field(20, ge=1, le=100, description="每页大小")
+
+@stock_router.post("/ratings")
+def get_investment_ratings(
+    params: RatingQueryParams,
+):
+    """
+    获取投资评级列表（分页）
+    :param params: 分页参数
+    :return: 分页的投资评级列表
+    """
+    db: Session = next(get_db())
+    # 计算偏移量
+    offset = (params.page - 1) * params.page_size
+    
+    # 获取总记录数
+    total = db.query(InvestmentRating).count()
+    
+    # 获取分页数据
+    ratings = db.query(InvestmentRating).offset(offset).limit(params.page_size).all()
+    
+    # 转换日期字段为字符串格式
+    items = []
+    for rating in ratings:
+        items.append({
+            "id": rating.id,
+            "symbol": rating.symbol,
+            "name": rating.name,
+            "rating": rating.rating,
+            "current_price": rating.current_price,
+            "target_price": rating.target_price,
+            "analysis_date": rating.analysis_date.isoformat() if rating.analysis_date else None,
+            "created_at": rating.created_at.isoformat() if rating.created_at else None
+        })
+    
+    # 计算总页数
+    total_pages = (total + params.page_size - 1) // params.page_size
+    
+    return {
+        "total": total,
+        "page": params.page,
+        "page_size": params.page_size,
+        "total_pages": total_pages,
+        "items": items
+    }
 
 @stock_router.post("/agent")
 def get_agent_report(param: ReportParam):

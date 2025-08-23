@@ -4,7 +4,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { TrendingUp, TrendingDown, TrendingFlat, Search, Clear } from '@mui/icons-material';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
 // 分析结果数据类型定义
 interface AnalysisResult {
@@ -311,9 +311,46 @@ export default function AnalysisResults({ onSelectResult }: AnalysisResultsProps
     riskLevel: ''
   });
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 10;
+
+  // 组件挂载时自动加载数据
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const response = await axios.post('/api/stock/ratings', {
+          page: 1,
+          page_size: 100
+        });
+        
+        // 转换API返回的数据格式
+        const results = response.data.items.map((item: any) => ({
+          id: item.id,
+          stockCode: item.symbol,
+          stockName: item.name || '未知',
+          analysisDate: item.analysis_date ? item.analysis_date.split('T')[0] : '未知日期',
+          currentPrice: item.current_price || 0,
+          targetPrice: item.target_price || 0,
+          riskLevel: item.rating === '买入' ? '低' : item.rating === '持有' ? '中' : '高',
+          recommendation: item.rating || '未知',
+          trend: item.current_price && item.target_price ? 
+            (item.current_price < item.target_price ? 'up' : 
+             item.current_price > item.target_price ? 'down' : 'flat') : 'flat'
+        }));
+        
+        setAnalysisResults(results);
+      } catch (err) {
+        console.error('加载初始数据失败:', err);
+        setError('加载数据失败，请稍后重试');
+        setAnalysisResults([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
 
   const filteredResults = useMemo(() => {
     return analysisResults.filter(result => {
@@ -393,9 +430,28 @@ export default function AnalysisResults({ onSelectResult }: AnalysisResultsProps
         }
       });
       
-      // 调用API获取分析结果
-      const response = await axios.get(`/api/analysis/results?${params.toString()}`);
-      setAnalysisResults(response.data.results || []);
+      // 调用投资评级API获取数据（POST请求）
+      const response = await axios.post('/api/stock/ratings', {
+        page: 1,
+        page_size: 100
+      });
+      
+      // 转换API返回的数据格式
+      const results = response.data.items.map((item: any) => ({
+        id: item.id,
+        stockCode: item.symbol,
+        stockName: item.name || '未知',
+        analysisDate: item.analysis_date ? item.analysis_date.split('T')[0] : '未知日期',
+        currentPrice: item.current_price || 0,
+        targetPrice: item.target_price || 0,
+        riskLevel: item.rating === '买入' ? '低' : item.rating === '持有' ? '中' : '高',
+        recommendation: item.rating || '未知',
+        trend: item.current_price && item.target_price ? 
+          (item.current_price < item.target_price ? 'up' : 
+           item.current_price > item.target_price ? 'down' : 'flat') : 'flat'
+      }));
+      
+      setAnalysisResults(results);
       setPage(1); // 重置到第一页
     } catch (err) {
       console.error('获取分析结果失败:', err);
