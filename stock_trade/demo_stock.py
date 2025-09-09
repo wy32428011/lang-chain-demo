@@ -12,11 +12,15 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from sqlalchemy.orm.session import Session
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import os
 import talib as ta
 from langchain_core.output_parsers import JsonOutputParser
+
+from graph_demo.database import get_db
+from graph_demo.models import InvestmentRating
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
 
@@ -213,8 +217,31 @@ def get_executor():
 
 # === 4. 运行示例 ===
 if __name__ == "__main__":
-    stock_code = "601003"  # 万科A
-    result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
-    parser = JsonOutputParser(pydantic_object=StockReport)
-    parsed_result = parser.parse(result["output"])
-    print(parsed_result)
+    # stock_code = "600100"  # 万科A
+    df = pd.read_csv('../graph_demo/A股股票列表.csv',
+                     encoding='utf-8',
+                     dtype={'代码': str, '名称': str, '最新价': float})
+    stock_codes = df['代码'].tolist()
+    for stock_code in stock_codes:
+        try:
+            result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
+            parser = JsonOutputParser(pydantic_object=StockReport)
+            parsed_result = parser.parse(result["output"])
+            print(parsed_result)
+            db: Session = next(get_db())
+            # 假设result中包含symbol和name信息
+            rating_record = InvestmentRating(
+                symbol=parsed_result.get('symbol', ''),
+                name=parsed_result.get('name', ''),
+                rating=parsed_result['investment_rating'],
+                current_price=parsed_result.get('current_price', None),
+                target_price=parsed_result.get('target_price', None),
+                analysis_date=datetime.strptime(parsed_result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
+                    'analysis_date') else None,
+                result_json=parsed_result
+            )
+            db.add(rating_record)
+            db.commit()
+            db.refresh(rating_record)
+        except Exception as e:
+            print(f"股票 {stock_code} 分析失败: {e}")
