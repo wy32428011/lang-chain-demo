@@ -26,17 +26,17 @@ logging.basicConfig(
     handlers=[logging.FileHandler("stock_analysis.log"), logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
-os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
-os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
-MAX_WORKERS = 2
+# os.environ["http_proxy"] = "http://127.0.0.1:7890"  # HTTP代理
+# os.environ["https_proxy"] = "http://127.0.0.1:7890"  # HTTPS代理
+MAX_WORKERS = 20
 
 def get_llm_model():
-    # base_url = "http://192.168.60.146:9090/v1"
-    # api_key = "qwen"
-    # model_name = "qwen"
-    base_url = "http://172.24.205.153:9090/v1"
+    base_url = "http://192.168.60.146:9090/v1"
     api_key = "qwen"
     model_name = "qwen"
+    # base_url = "http://172.24.205.153:9090/v1"
+    # api_key = "qwen"
+    # model_name = "qwen"
     # base_url = "https://api.siliconflow.cn/v1"
     # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
     # model_name = "Qwen/Qwen3-30B-A3B-Thinking-2507"
@@ -46,20 +46,25 @@ def get_llm_model():
         # max_retries=2,
         api_key=api_key,
         base_url=base_url,
+        top_p=0.1,
         # max_tokens=131072,
         # max_completion_tokens=20480,
         # timeout=20
         # streaming=True,
+        extra_body={
+            "enable_thinking": True
+        }
     )
     return model
 
 
-def get_stock_info():
+async def get_stock_info():
     """
     获取股票信息
     :param symbol: 股票编码
     :return: 股票信息
     """
+    await asyncio.sleep(0.1)
     # 获取所有A股实时行情数据（含股票代码）
     data = ak.stock_zh_a_spot_em()
     # 提取股票代码列
@@ -322,14 +327,14 @@ async def get_agent_symbol(symbol: str):
     # return
 
 
-def do_execute():
-    get_stock_info()
-    # 读取整个CSV文件
-    df = pd.read_csv('A股股票列表.csv',
-                     encoding='utf-8',
-                     dtype={'代码': str, '名称': str, '最新价': float})
+async def do_execute(df):
+    # await get_stock_info()
+    # # 读取整个CSV文件
+    # df = pd.read_csv('A股股票列表.csv',
+    #                  encoding='utf-8',
+    #                  dtype={'代码': str, '名称': str, '最新价': float})
     df = df[df['昨收'] < 15]
-    df = df[df['年初至今涨跌幅'] > 80]
+    # df = df[df['年初至今涨跌幅'] > 80]
     # 提取单列数据（通过列名）
     column_data = df['代码']  # 例如 df['股票代码']
     # 转换为列表
@@ -341,58 +346,58 @@ def do_execute():
     file_lock = Lock()
     # max_workers = 2  # 根据API速率限制调整并发数
 
-    async def process_stock(code):
-        try:
-
-            print(f"\n开始分析股票{code}")
-            # result_agent = await agent.ainvoke({
-            #     "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
-            # })
-            agent, data_context = await get_agent_symbol(code)
-            result_agent = None
-            async for step in agent.astream({"messages": [{"role": "user", "content": data_context}]},
-                                     stream_mode="values",):
-                # step["messages"][-1].pretty_print()
-                result_agent = step
-            # print("==================================================>",result_agent)
-            if not result_agent or "structured_response" not in result_agent:
-                print(f"股票{code}未返回有效结果")
-                return
-            result = result_agent["structured_response"]
-
-            if result['investment_rating'] in ("买入", "强烈买入"):
-                db: Session = next(get_db())
-                # 假设result中包含symbol和name信息
-                rating_record = InvestmentRating(
-                    symbol=result.get('symbol', ''),
-                    name=result.get('name', ''),
-                    rating=result['investment_rating'],
-                    current_price=result.get('current_price', None),
-                    target_price=result.get('target_price', None),
-                    analysis_date=datetime.strptime(result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
-                        'analysis_date') else None,
-                    result_json=result
-                )
-                db.add(rating_record)
-                db.commit()
-                db.refresh(rating_record)
-                with file_lock:
-                    current_date = datetime.now().strftime("%Y%m%d")
-                    filename = f"{code}_{current_date}.txt"
-                    output_dir = os.path.join(os.path.dirname(__file__), str(current_date))
-                    os.makedirs(output_dir, exist_ok=True)
-                    file_path = os.path.join(output_dir, filename)
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        json_str = json.dumps(result, ensure_ascii=False, indent=4)
-                        f.write(json_str)
-            await asyncio.sleep(5)  # 保留单个任务休眠
-        except Exception as ex:
-            logger.error(f"处理股票{code}时出错: {ex}")
+    # async def process_stock(code):
+    #     try:
+    #
+    #         print(f"\n开始分析股票{code}")
+    #         # result_agent = await agent.ainvoke({
+    #         #     "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
+    #         # })
+    #         agent, data_context = await get_agent_symbol(code)
+    #         result_agent = None
+    #         async for step in agent.astream({"messages": [{"role": "user", "content": data_context}]},
+    #                                  stream_mode="values",):
+    #             step["messages"][-1].pretty_print()
+    #             result_agent = step
+    #         # print("==================================================>",result_agent)
+    #         if not result_agent or "structured_response" not in result_agent:
+    #             print(f"股票{code}未返回有效结果")
+    #             return
+    #         result = result_agent["structured_response"]
+    #
+    #         if result['investment_rating'] in ("买入", "强烈买入"):
+    #             db: Session = next(get_db())
+    #             # 假设result中包含symbol和name信息
+    #             rating_record = InvestmentRating(
+    #                 symbol=result.get('symbol', ''),
+    #                 name=result.get('name', ''),
+    #                 rating=result['investment_rating'],
+    #                 current_price=result.get('current_price', None),
+    #                 target_price=result.get('target_price', None),
+    #                 analysis_date=datetime.strptime(result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
+    #                     'analysis_date') else None,
+    #                 result_json=result
+    #             )
+    #             db.add(rating_record)
+    #             db.commit()
+    #             db.refresh(rating_record)
+    #             with file_lock:
+    #                 current_date = datetime.now().strftime("%Y%m%d")
+    #                 filename = f"{code}_{current_date}.txt"
+    #                 output_dir = os.path.join(os.path.dirname(__file__), str(current_date))
+    #                 os.makedirs(output_dir, exist_ok=True)
+    #                 file_path = os.path.join(output_dir, filename)
+    #                 with open(file_path, "w", encoding="utf-8") as f:
+    #                     json_str = json.dumps(result, ensure_ascii=False, indent=4)
+    #                     f.write(json_str)
+    #         # await asyncio.sleep(5)  # 保留单个任务休眠
+    #     except Exception as ex:
+    #         logger.error(f"处理股票{code}时出错: {ex}")
 
     # 使用线程池并行处理
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # futures = {executor.submit(asyncio.run, process_stock(code)): code for code in stock_codes}
-        futures = [executor.submit(asyncio.run, process_stock(code)) for code in stock_codes]
+        futures = [executor.submit(asyncio.run, graph_stock(code)) for code in stock_codes]
         for future in tqdm(as_completed(futures), total=len(futures), desc="股票分析进度"):
             code = stock_codes[futures.index(future)]
             try:
@@ -400,9 +405,62 @@ def do_execute():
             except Exception as e:
                 print(f"线程执行出错(股票{code}): {e}")
 
+async def graph_stock(code):
+    try:
+        print(f"\n开始分析股票{code}")
+        # result_agent = await agent.ainvoke({
+        #     "messages": [{"role": "user", "content": f"分析股票{code}的行情"}]
+        # })
+        agent, data_context = await get_agent_symbol(code)
+        result_agent = None
+        async for step in agent.astream({"messages": [{"role": "user", "content": data_context}]},
+                                 stream_mode="values",):
+            step["messages"][-1].pretty_print()
+            result_agent = step
+        # print("==================================================>",result_agent)
+        if not result_agent or "structured_response" not in result_agent:
+            print(f"股票{code}未返回有效结果")
+            return
+        result = result_agent["structured_response"]
+
+        if result['investment_rating'] in ("买入", "强烈买入"):
+            db: Session = next(get_db())
+            # 假设result中包含symbol和name信息
+            rating_record = InvestmentRating(
+                symbol=result.get('symbol', ''),
+                name=result.get('name', ''),
+                rating=result['investment_rating'],
+                current_price=result.get('current_price', None),
+                target_price=result.get('target_price', None),
+                analysis_date=datetime.strptime(result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
+                    'analysis_date') else None,
+                result_json=result
+            )
+            db.add(rating_record)
+            db.commit()
+            db.refresh(rating_record)
+            # with file_lock:
+            #     current_date = datetime.now().strftime("%Y%m%d")
+            #     filename = f"{code}_{current_date}.txt"
+            #     output_dir = os.path.join(os.path.dirname(__file__), str(current_date))
+            #     os.makedirs(output_dir, exist_ok=True)
+            #     file_path = os.path.join(output_dir, filename)
+            #     with open(file_path, "w", encoding="utf-8") as f:
+            #         json_str = json.dumps(result, ensure_ascii=False, indent=4)
+            #         f.write(json_str)
+        # await asyncio.sleep(5)  # 保留单个任务休眠
+        return result
+    except Exception as ex:
+        logger.error(f"处理股票{code}时出错: {ex}")
+
 
 if __name__ == '__main__':
-    do_execute()
+    asyncio.run(get_stock_info())
+    # 读取整个CSV文件
+    df = pd.read_csv('A股股票列表.csv',
+                     encoding='utf-8',
+                     dtype={'代码': str, '名称': str, '最新价': float})
+    asyncio.run(do_execute(df))
     # res_list = []
     # for step in agent.stream({"messages": [{"role": "user", "content": "分析股票000718的行情"}]},
     #                          stream_mode="values",):

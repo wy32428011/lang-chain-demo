@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from typing import List
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from graph_demo import llm_init
 from graph_demo.database import get_db
 from graph_demo.llm_init import get_agent
 from graph_demo.models import InvestmentRating
@@ -118,6 +120,11 @@ def get_agent_report(param: ReportParam):
         step["messages"][-1].pretty_print()
     # print(res_list)
     return res_list[-1]["structured_response"]
+
+@stock_router.post("/graph")
+def get_stock_by_graph(code: str):
+
+    return asyncio.run(llm_init.graph_stock(code))
 
 
 def get_all_stock_report():
