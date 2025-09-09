@@ -20,6 +20,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
 
+
 # === 工具1：获取股票一周历史行情 ===
 @tool
 def get_stock_history(symbol: str) -> str:
@@ -34,6 +35,7 @@ def get_stock_history(symbol: str) -> str:
     df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
     return df.tail(30).to_string(index=False)
 
+
 # === 工具2：搜索股票相关新闻 ===
 @tool
 def search_stock_news(symbol: str) -> str:
@@ -46,6 +48,7 @@ def search_stock_news(symbol: str) -> str:
     results = DDGS().text(query, max_results=5)
     print(results)
     return "\n".join([f"{r['title']} - {r['href']}" for r in results])
+
 
 # === 工具3：计算技术指标 ===
 @tool
@@ -72,6 +75,7 @@ def tech_tool(symbol: str) -> dict:
         "RSI": rsi
     }
 
+
 @tool
 def get_stock_info(symbol: str) -> str:
     """
@@ -85,6 +89,21 @@ def get_stock_info(symbol: str) -> str:
 
     stock_info = df[df["代码"] == symbol]
     return stock_info.to_string(index=False)
+
+
+@tool
+def get_stock_info_csv(symbol: str):
+    """
+    获取股票信息
+    :param symbol: 股票编码
+    :return: 股票信息
+    """
+    df = pd.read_csv('../graph_demo/A股股票列表.csv',
+                     encoding='utf-8',
+                     dtype={'代码': str, '名称': str, '最新价': float})
+    df = df[df["代码"] == symbol]
+    return df.to_string(index=False)
+
 
 # === 3. 构建 LangChain 智能体 ===
 def get_executor():
@@ -102,15 +121,17 @@ def get_executor():
 
     # 启用结构化输出
     # llm = llm.with_structured_output(StockReport)
-
+    stock_schema = str(StockReport.model_json_schema()).replace('{', '{{').replace('}', '}}')
     prompt = (ChatPromptTemplate.from_messages([
-        ("system", """您是具有15年从业经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析。
-
+        ("system", f"""您是具有15年从业经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析。
+## 重要输出要求
+**您必须严格按照以下JSON格式输出分析结果，不要输出任何其他内容：**
+{stock_schema}
 ## 分析框架
 ### 1. 数据收集（必须按顺序调用）
+- **股票基础信息**：调用get_stock_info_csv获取股票基础信息
 - **历史行情**：调用get_stock_history获取30日K线数据
 - **技术指标**：调用tech_tool获取MA5/MA10、MACD、RSI指标  
-- **新闻舆情**：调用fetch_stock_news_selenium获取极速版_股票历史行情日新闻并进行情感分析
 
 ### 2. 分析维度（每项需量化说明）
 | 维度 | 分析标准 | 权重 |
@@ -183,14 +204,17 @@ def get_executor():
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ]))
 
-    tools = [get_stock_history, tech_tool, fetch_stock_news_selenium]
+    tools = [get_stock_info_csv, get_stock_history, tech_tool]
     agent = create_openai_tools_agent(llm, tools, prompt)
     executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-    parser = JsonOutputParser(pydantic_object=StockReport)
-    return executor | parser
+
+    return executor
+
 
 # === 4. 运行示例 ===
 if __name__ == "__main__":
-    stock_code = "000718"  # 万科A
+    stock_code = "601003"  # 万科A
     result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
-    print("result---------------------->",result["output"])
+    parser = JsonOutputParser(pydantic_object=StockReport)
+    parsed_result = parser.parse(result["output"])
+    print(parsed_result)
