@@ -1,6 +1,5 @@
 import akshare as ak
 from datetime import datetime, timedelta
-
 import pandas as pd
 from ddgs import DDGS
 from langchain.tools import tool
@@ -17,10 +16,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import os
 import talib as ta
-
+from langchain_core.output_parsers import JsonOutputParser
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
-
 
 # === 工具1：获取股票一周历史行情 ===
 @tool
@@ -36,7 +34,6 @@ def get_stock_history(symbol: str) -> str:
     df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start.strftime("%Y%m%d"), adjust="")
     return df.tail(30).to_string(index=False)
 
-
 # === 工具2：搜索股票相关新闻 ===
 @tool
 def search_stock_news(symbol: str) -> str:
@@ -49,7 +46,6 @@ def search_stock_news(symbol: str) -> str:
     results = DDGS().text(query, max_results=5)
     print(results)
     return "\n".join([f"{r['title']} - {r['href']}" for r in results])
-
 
 # === 工具3：计算技术指标 ===
 @tool
@@ -76,12 +72,11 @@ def tech_tool(symbol: str) -> dict:
         "RSI": rsi
     }
 
-
 @tool
 def get_stock_info(symbol: str) -> str:
     """
     获取股票信息
-    :param symbol: 股票编码
+    :极速版_股票历史行情: 股票编码
     :return: 股票信息
     """
 
@@ -91,18 +86,12 @@ def get_stock_info(symbol: str) -> str:
     stock_info = df[df["代码"] == symbol]
     return stock_info.to_string(index=False)
 
-
 # === 3. 构建 LangChain 智能体 ===
-# base_url = "https://api.siliconflow.cn/v1"
-# api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
-# model_name = "deepseek-ai/DeepSeek-R1"
 def get_executor():
     base_url = "http://192.168.60.146:9090/v1"
     api_key = "qwen"
     model_name = "qwen"
-    # base_url = "https://api.siliconflow.cn/v1"
-    # api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
-    # model_name = "deepseek-ai/DeepSeek-R1"
+
     llm = ChatOpenAI(
         model=model_name,
         temperature=0.3,
@@ -110,26 +99,25 @@ def get_executor():
         api_key=api_key,
         base_url=base_url
     )
-    # llm.with_structured_output(StockReport.model_json_schema())
-    # 解析输出
-    # parser = PydanticOutputParser(pydantic_object=StockReport)
+
+    # 启用结构化输出
+    # llm = llm.with_structured_output(StockReport)
 
     prompt = (ChatPromptTemplate.from_messages([
         ("system", """您是具有15年从业经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析。
 
 ## 分析框架
 ### 1. 数据收集（必须按顺序调用）
-- **实时行情**：调用get_stock_info获取实时行情数据及基本信息
 - **历史行情**：调用get_stock_history获取30日K线数据
 - **技术指标**：调用tech_tool获取MA5/MA10、MACD、RSI指标  
-- **新闻舆情**：调用fetch_stock_news_selenium获取近7日新闻并进行情感分析
+- **新闻舆情**：调用fetch_stock_news_selenium获取极速版_股票历史行情日新闻并进行情感分析
 
 ### 2. 分析维度（每项需量化说明）
 | 维度 | 分析标准 | 权重 |
 |---|---|---|
 | **价格趋势** | 基于30日K线的支撑/压力位、成交量变化 | 30% |
 | **技术指标** | MA5/MA10金叉死叉、MACD背离、RSI超买超卖 | 35% |
-| **舆情影响** | 新闻情感极性(-1~1)、媒体关注度、政策导向 | 25% |
+| **舆情影响** | 新闻情感极性(-1~1)、媒体关注极速版_股票历史行情、政策导向 | 25% |
 | **风险控制** | 波动率、Beta系数、行业相关性 | 10% |
 
 ### 3. 自我反驳论证要求
@@ -146,7 +134,7 @@ def get_executor():
    - 关键支撑位/压力位识别
    - 量价关系评估
 
-2. **技术指标解读**：
+2. **技术指标解读**：极速版_股票历史行情
    - MA5/MA10：金叉/死叉状态及强度
    - MACD：DIF/DEA位置、柱状体变化、背离信号
    - RSI：当前值、超买超卖区间、历史分位数
@@ -190,37 +178,19 @@ def get_executor():
 - **总字数**：不少于2000字
 - **数据引用**：所有分析必须基于实际获取的数据
 - **量化表达**：避免主观描述，使用具体数值
-- **JSON输出**：严格符合{schema}结构
 """),
         ("user", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
+    ]))
 
-    ])
-
-              )
-    tools = [get_stock_info, get_stock_history, tech_tool, fetch_stock_news_selenium]
+    tools = [get_stock_history, tech_tool, fetch_stock_news_selenium]
     agent = create_openai_tools_agent(llm, tools, prompt)
     executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-    return executor
-
+    parser = JsonOutputParser(pydantic_object=StockReport)
+    return executor | parser
 
 # === 4. 运行示例 ===
 if __name__ == "__main__":
     stock_code = "000718"  # 万科A
     result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
     print("result---------------------->",result["output"])
-
-    # 将分析结果保存到文件
-    # from datetime import datetime
-    #
-    # current_date = datetime.now().strftime("%Y%m%d")
-    # filename = f"{stock_code}_{current_date}.txt"
-    #
-    # # 确保output目录存在
-    # output_dir = os.path.join(os.path.dirname(__file__), "output")
-    # os.makedirs(output_dir, exist_ok=True)
-    #
-    # file_path = os.path.join(output_dir, filename)
-    # with open(file_path, "w", encoding="utf-8") as f:
-    #     f.write(result["output"])
-    # print(f"分析结果已保存到: {file_path}")
