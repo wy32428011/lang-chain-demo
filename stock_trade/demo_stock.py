@@ -117,10 +117,13 @@ def get_executor():
 
     llm = ChatOpenAI(
         model=model_name,
-        temperature=0.3,
-        max_retries=2,
+        temperature=0.6,
         api_key=api_key,
-        base_url=base_url
+        base_url=base_url,
+        top_p=0.1,
+        extra_body={
+            "enable_thinking": True
+        }
     )
 
     # 启用结构化输出
@@ -217,31 +220,59 @@ def get_executor():
 
 # === 4. 运行示例 ===
 if __name__ == "__main__":
-    # stock_code = "600100"  # 万科A
+    import concurrent.futures
+    from tqdm import tqdm
+
     df = pd.read_csv('../graph_demo/A股股票列表.csv',
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
     stock_codes = df['代码'].tolist()
-    for stock_code in stock_codes:
-        try:
-            result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
-            parser = JsonOutputParser(pydantic_object=StockReport)
-            parsed_result = parser.parse(result["output"])
-            print(parsed_result)
-            db: Session = next(get_db())
-            # 假设result中包含symbol和name信息
-            rating_record = InvestmentRating(
-                symbol=parsed_result.get('symbol', ''),
-                name=parsed_result.get('name', ''),
-                rating=parsed_result['investment_rating'],
-                current_price=parsed_result.get('current_price', None),
-                target_price=parsed_result.get('target_price', None),
-                analysis_date=datetime.strptime(parsed_result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
-                    'analysis_date') else None,
-                result_json=parsed_result
-            )
-            db.add(rating_record)
-            db.commit()
-            db.refresh(rating_record)
-        except Exception as e:
-            print(f"股票 {stock_code} 分析失败: {e}")
+
+    # 分块处理，每块10个股票代码
+    chunk_size = 50
+    chunks = [stock_codes[i:i + chunk_size] for i in range(0, len(stock_codes), chunk_size)]
+    max_workers = 10
+    def process_stock_chunk(chunk, pbar):
+        """处理一个股票代码块的函数"""
+        for stock_code in chunk:
+            try:
+                result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
+                parser = JsonOutputParser(pydantic_object=StockReport)
+                parsed_result = parser.parse(result["output"])
+                print(parsed_result)
+                db: Session = next(get_db())
+                # 假设result中包含symbol和name信息
+                rating_record = InvestmentRating(
+                    symbol=parsed_result.get('symbol', ''),
+                    name=parsed_result.get('name', ''),
+                    rating=parsed_result['investment_rating'],
+                    current_price=parsed_result.get('current_price', None),
+                    target_price=parsed_result.get('target_price', None),
+                    analysis_date=datetime.strptime(parsed_result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
+                        'analysis_date') else None,
+                    result_json=parsed_result
+                )
+                db.add(rating_record)
+                db.commit()
+                db.refresh(rating_record)
+            except Exception as e:
+                print(f"股票 {stock_code} 分析失败: {e}")
+            finally:
+                # 更新进度条
+                pbar.update(1)
+
+    # 创建进度条
+    with tqdm(total=len(stock_codes), desc="处理股票分析", unit="股票") as pbar:
+        # 使用线程池执行器并行处理每个块
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有块到线程池，传递进度条对象
+            futures = [executor.submit(process_stock_chunk, chunk, pbar) for chunk in chunks]
+
+            # 等待所有任务完成
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    future.result()  # 获取结果，如果有异常会在这里抛出
+                except Exception as e:
+                    print(f"处理块时发生错误: {e}")
+
+
