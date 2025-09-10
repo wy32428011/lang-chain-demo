@@ -12,7 +12,7 @@ from graph_demo import llm_init
 from graph_demo.database import get_db
 from graph_demo.llm_init import get_agent
 from graph_demo.models import InvestmentRating
-from stock_trade.demo_stock import get_executor
+from stock_trade.demo_stock import get_executor, process_stock_chunk
 
 stock_router = APIRouter()
 class ReportParam(BaseModel):
@@ -126,6 +126,9 @@ def get_stock_by_graph(code: str):
 
     return asyncio.run(llm_init.graph_stock(code))
 
+@stock_router.post("/chain")
+def get_stock_by_chain(code: str):
+    return process_stock_chunk(code)
 
 def get_all_stock_report():
     """

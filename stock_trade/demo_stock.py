@@ -21,6 +21,7 @@ from langchain_core.output_parsers import JsonOutputParser
 
 from graph_demo.database import get_db
 from graph_demo.models import InvestmentRating
+from llm_stock.web_search import bocha_websearch_tool
 from stock_trade.demo_stock_sentiment import fetch_stock_news_selenium
 from stock_trade.stock_report import StockReport
 
@@ -102,7 +103,7 @@ def get_stock_info_csv(symbol: str):
     :param symbol: 股票编码
     :return: 股票信息
     """
-    df = pd.read_csv('../graph_demo/A股股票列表.csv',
+    df = pd.read_csv('./graph_demo/A股股票列表.csv',
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
     df = df[df["代码"] == symbol]
@@ -139,6 +140,7 @@ def get_executor():
 - **股票基础信息**：调用get_stock_info_csv获取股票基础信息
 - **历史行情**：调用get_stock_history获取30日K线数据
 - **技术指标**：调用tech_tool获取MA5/MA10、MACD、RSI指标  
+- **新闻资讯**：调用bocha_websearch_tool获取相关新闻资讯
 
 ### 2. 分析维度（每项需量化说明）
 | 维度 | 分析标准 | 权重 |
@@ -211,7 +213,7 @@ def get_executor():
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ]))
 
-    tools = [get_stock_info_csv, get_stock_history, tech_tool]
+    tools = [get_stock_info_csv, get_stock_history, tech_tool, bocha_websearch_tool]
     agent = create_openai_tools_agent(llm, tools, prompt)
     executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
@@ -232,6 +234,8 @@ if __name__ == "__main__":
     chunk_size = 50
     chunks = [stock_codes[i:i + chunk_size] for i in range(0, len(stock_codes), chunk_size)]
     max_workers = 10
+
+
     def process_stock_chunk(chunk, pbar):
         """处理一个股票代码块的函数"""
         for stock_code in chunk:
@@ -261,6 +265,7 @@ if __name__ == "__main__":
                 # 更新进度条
                 pbar.update(1)
 
+
     # 创建进度条
     with tqdm(total=len(stock_codes), desc="处理股票分析", unit="股票") as pbar:
         # 使用线程池执行器并行处理每个块
@@ -276,3 +281,28 @@ if __name__ == "__main__":
                     print(f"处理块时发生错误: {e}")
 
 
+def process_stock_chunk(stock_code: str):
+    """处理一个股票代码块的函数"""
+    try:
+        result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
+        parser = JsonOutputParser(pydantic_object=StockReport)
+        parsed_result = parser.parse(result["output"])
+        print(parsed_result)
+        db: Session = next(get_db())
+        # 假设result中包含symbol和name信息
+        rating_record = InvestmentRating(
+            symbol=parsed_result.get('symbol', ''),
+            name=parsed_result.get('name', ''),
+            rating=parsed_result['investment_rating'],
+            current_price=parsed_result.get('current_price', None),
+            target_price=parsed_result.get('target_price', None),
+            analysis_date=datetime.strptime(parsed_result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
+                'analysis_date') else None,
+            result_json=parsed_result
+        )
+        db.add(rating_record)
+        db.commit()
+        db.refresh(rating_record)
+        return parsed_result
+    except Exception as e:
+        print(f"股票 {stock_code} 分析失败: {e}")
