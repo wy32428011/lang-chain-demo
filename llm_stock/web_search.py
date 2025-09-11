@@ -23,8 +23,8 @@ def bocha_websearch_tool(query: str, count: int = 10) -> str:
         'Content-Type': 'application/json'
     }
     data = {
-        "query": f"查询中国A股股票代码{query}的最新资讯",
-        "freshness": "noLimit",  # 搜索的时间范围，例如 "oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"
+        "query": f"中国A股 {query} 股票 最新新闻 公告 新浪财经 东方财富网 同花顺财经 近7天",
+        "freshness": "oneWeek",  # 搜索的时间范围，例如 "oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"
         "summary": True,  # 是否返回长文本摘要
         "count": count
     }
