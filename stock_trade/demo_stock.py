@@ -103,7 +103,7 @@ def get_stock_info_csv(symbol: str):
     :param symbol: 股票编码
     :return: 股票信息
     """
-    df = pd.read_csv('./graph_demo/A股股票列表.csv',
+    df = pd.read_csv('../graph_demo/A股股票列表.csv',
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
     df = df[df["代码"] == symbol]
@@ -112,28 +112,36 @@ def get_stock_info_csv(symbol: str):
 
 # === 3. 构建 LangChain 智能体 ===
 def get_executor():
-    base_url = "http://192.168.60.146:9090/v1"
-    api_key = "qwen"
-    model_name = "qwen"
-
-    llm = ChatOpenAI(
-        model=model_name,
-        temperature=0.6,
-        api_key=api_key,
-        base_url=base_url,
+    # base_url = "http://192.168.60.146:9090/v1"
+    # api_key = "qwen"
+    # model_name = "qwen"
+    #
+    # llm = ChatOpenAI(
+    #     model=model_name,
+    #     temperature=0.6,
+    #     api_key=api_key,
+    #     base_url=base_url,
+    #     top_p=0.1,
+    #     extra_body={
+    #         "enable_thinking": True
+    #     }
+    # )
+    from langchain_ollama import ChatOllama
+    llm = ChatOllama(
+        base_url="http://172.24.205.153:11434",
+        model="gpt-oss:20b",
+        temperature=0,
         top_p=0.1,
-        extra_body={
-            "enable_thinking": True
-        }
+        reasoning=True
     )
-
     # 启用结构化输出
     # llm = llm.with_structured_output(StockReport)
     stock_schema = str(StockReport.model_json_schema()).replace('{', '{{').replace('}', '}}')
     prompt = (ChatPromptTemplate.from_messages([
         ("system", f"""您是具有15年从业经验的资深股票分析师，具备CFA和FRM双重认证。请基于多维度数据进行专业分析，重点预测短期价格走向。
 ## 重要输出要求
-**您必须严格按照以下JSON格式输出分析结果，不要输出任何其他内容：**
+- **必须使用中文回答**
+- **您必须严格按照以下JSON格式输出分析结果，不要输出任何其他内容：**
 {stock_schema}
 ## 分析框架
 ### 1. 数据收集（必须按顺序调用）
@@ -266,12 +274,14 @@ if __name__ == "__main__":
     df = pd.read_csv('../graph_demo/A股股票列表.csv',
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
+    df = df[df['昨收'] < 11]
+    df = df[df['年初至今涨跌幅'] > 120]
     stock_codes = df['代码'].tolist()
 
     # 分块处理，每块10个股票代码
-    chunk_size = 50
+    chunk_size = 10
     chunks = [stock_codes[i:i + chunk_size] for i in range(0, len(stock_codes), chunk_size)]
-    max_workers = 10
+    max_workers = 1
 
 
     def process_stock_chunk(chunk, pbar):
