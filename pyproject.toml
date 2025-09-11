@@ -119,6 +119,7 @@ dependencies = [
     "xxhash==3.5.0",
     "yarl==1.20.1",
     "zstandard==0.23.0",
+    "pandas-stubs==2.2.2.240805",
 ]
 
 [tool.uv.sources]
