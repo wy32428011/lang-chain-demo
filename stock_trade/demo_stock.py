@@ -1,3 +1,5 @@
+import json
+
 import akshare as ak
 from datetime import datetime, timedelta
 import pandas as pd
@@ -103,7 +105,7 @@ def get_stock_info_csv(symbol: str):
     :param symbol: 股票编码
     :return: 股票信息
     """
-    df = pd.read_csv('../graph_demo/A股股票列表.csv',
+    df = pd.read_csv('./graph_demo/A股股票列表.csv',
                      encoding='utf-8',
                      dtype={'代码': str, '名称': str, '最新价': float})
     df = df[df["代码"] == symbol]
@@ -112,28 +114,34 @@ def get_stock_info_csv(symbol: str):
 
 # === 3. 构建 LangChain 智能体 ===
 def get_executor():
+    ## 本地
     # base_url = "http://192.168.60.146:9090/v1"
     # api_key = "qwen"
     # model_name = "qwen"
-    #
-    # llm = ChatOpenAI(
-    #     model=model_name,
-    #     temperature=0.6,
-    #     api_key=api_key,
-    #     base_url=base_url,
-    #     top_p=0.1,
-    #     extra_body={
-    #         "enable_thinking": True
-    #     }
-    # )
-    from langchain_ollama import ChatOllama
-    llm = ChatOllama(
-        base_url="http://172.24.205.153:11434",
-        model="gpt-oss:20b",
-        temperature=0,
+
+    ## 硅基流动
+    base_url = "https://api.siliconflow.cn/v1"
+    api_key = "sk-iwcrqdyppclebjgtfpudagjdnkqhgfsauhxwjaalrvjpgnvt"
+    model_name = "deepseek-ai/DeepSeek-V3.1"
+
+    llm = ChatOpenAI(
+        model=model_name,
+        temperature=0.6,
+        api_key=api_key,
+        base_url=base_url,
         top_p=0.1,
-        reasoning=True
+        # extra_body={
+        #     "enable_thinking": True
+        # }
     )
+    # from langchain_ollama import ChatOllama
+    # llm = ChatOllama(
+    #     base_url="http://172.24.205.153:11434",
+    #     model="gpt-oss:20b",
+    #     temperature=0,
+    #     top_p=0.1,
+    #     reasoning=True
+    # )
     # 启用结构化输出
     # llm = llm.with_structured_output(StockReport)
     stock_schema = str(StockReport.model_json_schema()).replace('{', '{{').replace('}', '}}')
@@ -255,6 +263,7 @@ def get_executor():
 - **Markdown格式**：使用#标题（如## 30日收盘价趋势分析）、**加粗关键词**、无序列表(-)、有序列表(1.)、表格（如量价关系评估表）等元素  
 - **逻辑闭环**：每个结论需有"数据→分析→结论"完整链条，禁止无依据推测 
 """),
+        MessagesPlaceholder(variable_name="chat_history", optional=True),
         ("user", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ]))
@@ -288,25 +297,7 @@ if __name__ == "__main__":
         """处理一个股票代码块的函数"""
         for stock_code in chunk:
             try:
-                result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
-                parser = JsonOutputParser(pydantic_object=StockReport)
-                parsed_result = parser.parse(result["output"])
-                print(parsed_result)
-                db: Session = next(get_db())
-                # 假设result中包含symbol和name信息
-                rating_record = InvestmentRating(
-                    symbol=parsed_result.get('symbol', ''),
-                    name=parsed_result.get('name', ''),
-                    rating=parsed_result['investment_rating'],
-                    current_price=parsed_result.get('current_price', None),
-                    target_price=parsed_result.get('target_price', None),
-                    analysis_date=datetime.strptime(parsed_result.get('analysis_date', ''), '%Y-%m-%d') if result.get(
-                        'analysis_date') else None,
-                    result_json=parsed_result
-                )
-                db.add(rating_record)
-                db.commit()
-                db.refresh(rating_record)
+                process_stock_chunk(stock_code)
             except Exception as e:
                 print(f"股票 {stock_code} 分析失败: {e}")
             finally:
@@ -332,10 +323,12 @@ if __name__ == "__main__":
 def process_stock_chunk(stock_code: str):
     """处理一个股票代码块的函数"""
     try:
-        result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情"})
+        result = get_executor().invoke({"input": f"请分析 股票 {stock_code} 的近期行情",
+                                        "chat_history": []})
+        print(result)
         parser = JsonOutputParser(pydantic_object=StockReport)
         parsed_result = parser.parse(result["output"])
-        print(parsed_result)
+        print("parsed_result",parsed_result)
         db: Session = next(get_db())
         # 假设result中包含symbol和name信息
         rating_record = InvestmentRating(
@@ -354,3 +347,4 @@ def process_stock_chunk(stock_code: str):
         return parsed_result
     except Exception as e:
         print(f"股票 {stock_code} 分析失败: {e}")
+        return None

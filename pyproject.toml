@@ -120,6 +120,7 @@ dependencies = [
     "yarl==1.20.1",
     "zstandard==0.23.0",
     "pandas-stubs==2.2.2.240805",
+    "langchain-ollama>=0.3.7",
 ]
 
 [tool.uv.sources]

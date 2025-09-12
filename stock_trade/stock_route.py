@@ -67,7 +67,7 @@ def get_investment_ratings(
     total = db.query(InvestmentRating).count()
     
     # 获取分页数据
-    ratings = db.query(InvestmentRating).offset(offset).limit(params.page_size).all()
+    ratings = db.query(InvestmentRating).order_by(InvestmentRating.created_at.desc()).offset(offset).limit(params.page_size).all()
     
     # 转换日期字段为字符串格式
     items = []
@@ -101,25 +101,26 @@ def get_agent_report(param: ReportParam):
     :param param: 股票编码
     :return: 股票报告
     """
-    agent = get_agent()
-    # result = agent.invoke({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]},)
-    # print(result["structured_response"])
-    # return result["structured_response"]
-    # 读取整个CSV文件
-    df = pd.read_csv('A股股票列表.csv',
-                     encoding='utf-8',
-                     dtype={'代码': str, '名称': str})
-    # 提取单列数据（通过列名）
-    column_data = df['代码']  # 例如 df['股票代码']
-    # 转换为列表
-    stock_codes = column_data.tolist()
-    res_list = []
-    for step in agent.stream({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]},
-                             stream_mode="values",):
-        res_list.append(step)
-        step["messages"][-1].pretty_print()
-    # print(res_list)
-    return res_list[-1]["structured_response"]
+    # agent = get_agent()
+    # # result = agent.invoke({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]},)
+    # # print(result["structured_response"])
+    # # return result["structured_response"]
+    # # 读取整个CSV文件
+    # df = pd.read_csv('A股股票列表.csv',
+    #                  encoding='utf-8',
+    #                  dtype={'代码': str, '名称': str})
+    # # 提取单列数据（通过列名）
+    # column_data = df['代码']  # 例如 df['股票代码']
+    # # 转换为列表
+    # stock_codes = column_data.tolist()
+    # res_list = []
+    # for step in agent.stream({"messages": [{"role": "user", "content": f"分析股票{param.symbol}的行情"}]},
+    #                          stream_mode="values",):
+    #     res_list.append(step)
+    #     step["messages"][-1].pretty_print()
+    # # print(res_list)
+    # return res_list[-1]["structured_response"]
+    return process_stock_chunk(param.symbol)
 
 @stock_router.post("/graph")
 def get_stock_by_graph(code: str):
@@ -129,6 +130,8 @@ def get_stock_by_graph(code: str):
 @stock_router.post("/chain")
 def get_stock_by_chain(code: str):
     return process_stock_chunk(code)
+
+
 
 def get_all_stock_report():
     """
