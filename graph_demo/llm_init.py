@@ -454,20 +454,22 @@ async def graph_stock(code):
         logger.error(f"处理股票{code}时出错: {ex}")
 
 
-if __name__ == '__main__':
-    asyncio.run(get_stock_info())
-    # 读取整个CSV文件
-    df = pd.read_csv('A股股票列表.csv',
-                     encoding='utf-8',
-                     dtype={'代码': str, '名称': str, '最新价': float})
-    asyncio.run(do_execute(df))
-    # res_list = []
-    # for step in agent.stream({"messages": [{"role": "user", "content": "分析股票000718的行情"}]},
-    #                          stream_mode="values",):
-    #     print( step)
-    #     step["messages"][-1].pretty_print()
+# if __name__ == '__main__':
+#     asyncio.run(get_stock_info())
+#     # 读取整个CSV文件
+#     df = pd.read_csv('A股股票列表.csv',
+#                      encoding='utf-8',
+#                      dtype={'代码': str, '名称': str, '最新价': float})
+#     asyncio.run(do_execute(df))
+#     # res_list = []
+#     # for step in agent.stream({"messages": [{"role": "user", "content": "分析股票000718的行情"}]},
+#     #                          stream_mode="values",):
+#     #     print( step)
+#     #     step["messages"][-1].pretty_print()
 
 # 添加函数导出，方便其他模块调用
 def main():
     """主函数，供定时任务调用"""
     do_execute()
+
+# asyncio.run(get_stock_info())
